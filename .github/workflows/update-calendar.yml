@@ -1,0 +1,97 @@
+name: Update Calendar (scheduled)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # every 5 minutes (adjust as needed)
+  workflow_dispatch: {}    # allow manual run
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true  # so push uses the workflow token
+
+      - name: Fetch CSV and build index.html
+        env:
+          CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsF_4-QMue4gC-b8i13mBH_7uFpLjmvK6Zs0-jS1mJcR6V-_EN-mz-WF44x8xlqP_XzZgoOx_y9JE6/pub?gid=0&single=true&output=csv"
+        run: |
+          python3 - <<'PY'
+          import requests, html, sys
+          csv_url = "${{ env.CSV_URL }}"
+          try:
+            r = requests.get(csv_url, timeout=30)
+            r.raise_for_status()
+          except Exception as e:
+            print("Failed fetching CSV:", e)
+            sys.exit(1)
+
+          text = r.text.strip()
+          lines = text.splitlines()
+          if not lines:
+            print("Empty CSV")
+            sys.exit(1)
+
+          # naive CSV split (good for simple spreadsheets). Replace with a robust parser if needed.
+          headers = [h.strip().strip('"') for h in lines[0].split(',')]
+          rows = []
+          for line in lines[1:]:
+            # simple split; if your cells contain commas, consider using a proper CSV parser
+            cols = [c.strip().strip('"') for c in line.split(',')]
+            rows.append(cols)
+
+          # Build a simple, pleasant HTML page
+          html_out = """<!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>Church Calendar</title>
+            <style>
+              body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f7f7f8;padding:20px}
+              table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+              th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+              th{background:#fafafa}
+              .date{white-space:nowrap;width:220px}
+            </style>
+          </head>
+          <body>
+            <h1>Church Calendar</h1>
+            <p>Last updated: {updated}</p>
+            <div>
+              <table>
+                <thead><tr>{thead}</tr></thead>
+                <tbody>{tbody}</tbody>
+              </table>
+            </div>
+          </body>
+          </html>"""
+
+          thead = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+          tbody_rows = []
+          for r in rows:
+            # pad row to headers length
+            r = r + [''] * (len(headers) - len(r))
+            row_html = "<tr>" + "".join(f"<td class='{'date' if i==0 else ''}'>{html.escape(col)}</td>" for i,col in enumerate(r)) + "</tr>"
+            tbody_rows.append(row_html)
+
+          out = html_out.format(updated=html.escape(__import__('datetime').datetime.utcnow().isoformat() + " UTC"),
+                                thead=thead,
+                                tbody="".join(tbody_rows))
+
+          with open('index.html','w', encoding='utf-8') as f:
+            f.write(out)
+          print("index.html written")
+          PY
+
+      - name: Commit & push to gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git checkout -B gh-pages
+          git add index.html
+          git commit -m "Automated calendar update" || echo "No changes to commit"
+          git push --force origin gh-pages
