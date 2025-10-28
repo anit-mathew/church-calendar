@@ -2,7 +2,7 @@ name: Update Calendar (scheduled)
 
 on:
   schedule:
-    - cron: '*/1 * * * *'  # every 5 minutes (adjust as needed)
+    - cron: '0 * * * *'  # ⏰ every hour at minute 0
   workflow_dispatch: {}    # allow manual run
 
 jobs:
@@ -21,29 +21,25 @@ jobs:
         run: |
           python3 - <<'PY'
           import requests, html, sys
+          from datetime import datetime, UTC
+
           csv_url = "${{ env.CSV_URL }}"
           try:
-            r = requests.get(csv_url, timeout=30)
-            r.raise_for_status()
+              r = requests.get(csv_url, timeout=30)
+              r.raise_for_status()
           except Exception as e:
-            print("Failed fetching CSV:", e)
-            sys.exit(1)
+              print("Failed fetching CSV:", e)
+              sys.exit(1)
 
           text = r.text.strip()
           lines = text.splitlines()
           if not lines:
-            print("Empty CSV")
-            sys.exit(1)
+              print("Empty CSV")
+              sys.exit(1)
 
-          # naive CSV split (good for simple spreadsheets). Replace with a robust parser if needed.
           headers = [h.strip().strip('"') for h in lines[0].split(',')]
-          rows = []
-          for line in lines[1:]:
-            # simple split; if your cells contain commas, consider using a proper CSV parser
-            cols = [c.strip().strip('"') for c in line.split(',')]
-            rows.append(cols)
+          rows = [[c.strip().strip('"') for c in line.split(',')] for line in lines[1:]]
 
-          # Build a simple, pleasant HTML page
           html_out = """<!doctype html>
           <html lang="en">
           <head>
@@ -71,23 +67,25 @@ jobs:
           </html>"""
 
           thead = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+
           tbody_rows = []
           for r in rows:
-            # pad row to headers length
-            r = r + [''] * (len(headers) - len(r))
-            row_html = "<tr>" + "".join(
-    f"<td class='{'date' if i==0 else ''}'>{html.escape(col)}</td>".replace("{", "{{").replace("}", "}}")
-    for i, col in enumerate(r)
-).replace("{{'date' if i==0 else ''}}", "{'date' if i==0 else ''}") + "</tr>"
+              r = r + [''] * (len(headers) - len(r))
+              cells = []
+              for i, col in enumerate(r):
+                  cell_class = "date" if i == 0 else ""
+                  cells.append(f"<td class='{cell_class}'>{html.escape(col)}</td>")
+              row_html = "<tr>" + "".join(cells) + "</tr>"
+              tbody_rows.append(row_html)
 
-            tbody_rows.append(row_html)
+          out = html_out.format(
+              updated=html.escape(datetime.now(UTC).isoformat()),
+              thead=thead,
+              tbody="".join(tbody_rows)
+          )
 
-          out = html_out.format(updated=html.escape(__import__('datetime').datetime.utcnow().isoformat() + " UTC"),
-                                thead=thead,
-                                tbody="".join(tbody_rows))
-
-          with open('index.html','w', encoding='utf-8') as f:
-            f.write(out)
+          with open('index.html', 'w', encoding='utf-8') as f:
+              f.write(out)
           print("index.html written")
           PY
 
