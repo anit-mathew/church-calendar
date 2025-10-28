@@ -95,12 +95,31 @@
 <div id="calendar"></div>
 
 <script>
-const events = [
-  {DATE: "2026-01-01", PROGRAM: "NEW YEAR-NO MEETINGS", LOCATION: "", CONTACT: "", COMMENTS: ""},
-  {DATE: "2026-01-03", PROGRAM: "FREE SATURDAY - NO MEETINGS", LOCATION: "", CONTACT: "", COMMENTS: "CONTACT PASTOR & SECRETARY TO SCHEDULE"}
-];
-
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
+let events = [];
 let currentDate = new Date();
+
+async function fetchCsv(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch CSV");
+  return await res.text();
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(",").map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cols = line.split(",").map(c => c.trim());
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = cols[i] || '');
+    // Convert DATE to yyyy-mm-dd format if needed
+    if(obj.DATE){
+      const d = new Date(obj.DATE);
+      obj.DATE = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    return obj;
+  });
+}
 
 function buildCalendar() {
   const calendar = document.getElementById("calendar");
@@ -114,14 +133,13 @@ function buildCalendar() {
   const firstDay = new Date(year, month, 1).getDay();
   const totalDays = new Date(year, month + 1, 0).getDate();
 
-  // Empty days before first day
-  for (let i = 0; i < firstDay; i++) {
+  for(let i=0;i<firstDay;i++){
     const empty = document.createElement("div");
     empty.className = "day";
     calendar.appendChild(empty);
   }
 
-  for (let d = 1; d <= totalDays; d++) {
+  for(let d=1;d<=totalDays;d++){
     const dayDiv = document.createElement("div");
     dayDiv.className = "day";
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -132,7 +150,7 @@ function buildCalendar() {
     dayDiv.appendChild(dateNum);
 
     const ev = events.find(e => e.DATE === dateStr);
-    if (ev) {
+    if(ev){
       const name = document.createElement("span");
       name.className = "event-name";
       name.textContent = ev.PROGRAM || "";
@@ -163,7 +181,19 @@ document.getElementById("next-month").addEventListener("click", () => {
   buildCalendar();
 });
 
-buildCalendar();
+// Initialize
+async function init() {
+  try {
+    const csv = await fetchCsv(CSV_URL);
+    events = parseCsv(csv);
+    buildCalendar();
+  } catch(e){
+    console.error(e);
+    document.getElementById("calendar").textContent = "Error loading calendar.";
+  }
+}
+
+init();
 </script>
 </body>
 </html>
