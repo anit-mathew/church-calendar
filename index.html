@@ -35,30 +35,38 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV
 let events = [];
 let currentDate = new Date();
 
-// Fetch CSV
+// Manual month map
+const monthMap = {
+  "January":1, "February":2, "March":3, "April":4,
+  "May":5, "June":6, "July":7, "August":8,
+  "September":9, "October":10, "November":11, "December":12
+};
+
+// Parse CSV
 async function fetchCsv(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch CSV");
   return await res.text();
 }
 
-// Parse CSV
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const cols = line.split(",").map(c => c.trim());
+  const headers = lines[0].split(",").map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const cols = line.split(",").map(c=>c.trim());
     const obj = {};
-    headers.forEach((h,i) => obj[h] = cols[i] || '');
+    headers.forEach((h,i)=>obj[h]=cols[i]||'');
 
-    // Parse DATE like "Thursday, January 1, 2026"
     if(obj.DATE){
-      // Remove weekday if present
+      // Remove weekday
       let parts = obj.DATE.split(',');
-      let dateStr = parts.slice(1).join(',').trim(); // "January 1, 2026"
-      const d = new Date(dateStr);
-      if(!isNaN(d)){
-        obj.parsedDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      let datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
+      const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
+      const month = monthMap[monthName];
+      const day = parseInt(dayStr);
+      const year = parseInt(yearStr);
+      if(month && day && year){
+        obj.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       }
     }
     return obj;
@@ -76,56 +84,55 @@ function buildCalendar() {
   const firstDay = new Date(year, month, 1).getDay();
   const totalDays = new Date(year, month + 1, 0).getDate();
 
-  // Fill empty days before first day
   for(let i=0;i<firstDay;i++){
     const empty = document.createElement("div");
-    empty.className = "day";
+    empty.className="day";
     calendar.appendChild(empty);
   }
 
   for(let d=1; d<=totalDays; d++){
     const dayDiv = document.createElement("div");
-    dayDiv.className = "day";
+    dayDiv.className="day";
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
     const dateNum = document.createElement("span");
-    dateNum.className = "date-num";
+    dateNum.className="date-num";
     dateNum.textContent = d;
     dayDiv.appendChild(dateNum);
 
-    const ev = events.find(e => e.parsedDate === dateStr);
-    if(ev){
+    const ev = events.filter(e=>e.parsedDate===dateStr);
+    ev.forEach(event=>{
       const name = document.createElement("span");
-      name.className = "event-name";
-      name.textContent = ev.PROGRAM || "";
+      name.className="event-name";
+      name.textContent = event.PROGRAM || "";
       dayDiv.appendChild(name);
 
       const tooltip = document.createElement("div");
-      tooltip.className = "tooltip";
+      tooltip.className="tooltip";
       tooltip.innerHTML = `
-        <strong>${ev.PROGRAM || ""}</strong><br>
-        Location: ${ev.LOCATION || ""}<br>
-        Contact: ${ev.CONTACT || ""}<br>
-        Comments: ${ev.COMMENTS || ""}
+        <strong>${event.PROGRAM || ""}</strong><br>
+        Location: ${event.LOCATION || ""}<br>
+        Contact: ${event.CONTACT || ""}<br>
+        Comments: ${event.COMMENTS || ""}
       `;
       dayDiv.appendChild(tooltip);
-    }
+    });
 
     calendar.appendChild(dayDiv);
   }
 }
 
 // Month navigation
-document.getElementById("prev-month").addEventListener("click", () => { currentDate.setMonth(currentDate.getMonth()-1); buildCalendar(); });
-document.getElementById("next-month").addEventListener("click", () => { currentDate.setMonth(currentDate.getMonth()+1); buildCalendar(); });
+document.getElementById("prev-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()-1); buildCalendar();});
+document.getElementById("next-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()+1); buildCalendar();});
 
 // Init
-async function init() {
+async function init(){
   const status = document.getElementById("status");
-  try {
+  try{
     const csv = await fetchCsv(CSV_URL);
     events = parseCsv(csv);
-    if(events.length > 0){
+    if(events.length>0){
       status.textContent = `Data loaded successfully! ${events.length} events found.`;
       status.style.color = "green";
     } else {
@@ -133,11 +140,11 @@ async function init() {
       status.style.color = "orange";
     }
     buildCalendar();
-  } catch(e){
+  }catch(e){
     console.error(e);
     status.textContent = "Error loading data from Google Sheet!";
     status.style.color = "red";
-    document.getElementById("calendar").textContent = "Cannot display calendar.";
+    document.getElementById("calendar").textContent="Cannot display calendar.";
   }
 }
 
