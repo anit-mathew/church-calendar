@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Church Calendar</title>
+<title>Church Calendar 2026 </title>
 <style>
 body { font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif; background: #f5f6fa; margin: 0; padding: 20px; color: #2d3748; }
 h1 { text-align: center; color: #2b6cb0; margin-bottom: 10px; }
@@ -39,7 +39,7 @@ let events = [];
 let currentDate = new Date();
 const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
-// Load CSV
+// Load CSV and parse
 async function loadData() {
     const status = document.getElementById("status");
     try{
@@ -50,9 +50,13 @@ async function loadData() {
             skipEmptyLines:true,
             complete:function(results){
                 events = results.data.map(obj=>{
-                    if(obj.DATE && obj.DATE.trim()!==""){
-                        // Remove weekday
-                        let parts = obj.DATE.split(',');
+                    // Trim keys and values
+                    const cleaned = {};
+                    Object.keys(obj).forEach(k => cleaned[k.trim().toUpperCase()] = (obj[k] || '').trim());
+
+                    // Parse date
+                    if(cleaned['DATE'] && cleaned['DATE'] !== ""){
+                        let parts = cleaned['DATE'].split(',');
                         let datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
                         if(datePart){
                             const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
@@ -60,12 +64,14 @@ async function loadData() {
                             const day = parseInt(dayStr);
                             const year = parseInt(yearStr);
                             if(month && day && year){
-                                obj.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                                cleaned.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
                             }
                         }
                     }
-                    return obj;
-                }).filter(e=>e.parsedDate); // remove rows that failed parsing
+                    return cleaned;
+                }).filter(e => e.parsedDate); // keep only valid rows
+
+                console.log(events); // confirm in browser console
                 status.textContent = `Data loaded successfully! ${events.length} events found.`;
                 status.style.color = "green";
                 buildCalendar();
@@ -78,7 +84,7 @@ async function loadData() {
     }
 }
 
-// Build Calendar
+// Build calendar
 function buildCalendar(){
     const calendar = document.getElementById("calendar");
     calendar.innerHTML = "";
@@ -117,13 +123,16 @@ function buildCalendar(){
         dateNum.textContent = d;
         dayDiv.appendChild(dateNum);
 
+        // Show events (even empty PROGRAM, still show tooltip if comments exist)
         const ev = events.filter(e=>e.parsedDate===dateStr);
         ev.forEach(event=>{
-            if(event.PROGRAM && event.PROGRAM.trim()!==""){
-                const name = document.createElement("span");
-                name.className="event-name";
-                name.textContent = event.PROGRAM;
-                dayDiv.appendChild(name);
+            if(event.PROGRAM || event.LOCATION || event.CONTACT || event.COMMENTS){
+                if(event.PROGRAM){
+                    const name = document.createElement("span");
+                    name.className="event-name";
+                    name.textContent = event.PROGRAM;
+                    dayDiv.appendChild(name);
+                }
 
                 const tooltip = document.createElement("div");
                 tooltip.className="tooltip";
@@ -136,6 +145,7 @@ function buildCalendar(){
                 dayDiv.appendChild(tooltip);
             }
         });
+
         calendar.appendChild(dayDiv);
     }
 }
