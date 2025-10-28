@@ -2,7 +2,7 @@ name: Update Calendar (scheduled)
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # every 5 minutes (adjust as needed)
+    - cron: '*/1 * * * *'  # every 5 minutes (adjust as needed)
   workflow_dispatch: {}    # allow manual run
 
 jobs:
