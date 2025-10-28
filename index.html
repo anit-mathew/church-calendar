@@ -17,6 +17,23 @@
     color: #2b6cb0;
     margin-bottom: 10px;
   }
+  #calendar-nav {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  #calendar-nav button {
+    background: #2b6cb0;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    margin: 0 5px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #calendar-nav span {
+    font-weight: bold;
+    margin: 0 10px;
+  }
   #calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -70,68 +87,59 @@
 </head>
 <body>
 <h1>Church Calendar</h1>
+<div id="calendar-nav">
+  <button id="prev-month">&lt; Prev</button>
+  <span id="month-year"></span>
+  <button id="next-month">Next &gt;</button>
+</div>
 <div id="calendar"></div>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
+const events = [
+  {DATE: "2026-01-01", PROGRAM: "NEW YEAR-NO MEETINGS", LOCATION: "", CONTACT: "", COMMENTS: ""},
+  {DATE: "2026-01-03", PROGRAM: "FREE SATURDAY - NO MEETINGS", LOCATION: "", CONTACT: "", COMMENTS: "CONTACT PASTOR & SECRETARY TO SCHEDULE"}
+];
 
-async function fetchCsv(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch CSV");
-  return await res.text();
-}
+let currentDate = new Date();
 
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g,''));
-  const rows = lines.slice(1).map(line => {
-    const cols = line.split(",").map(c => c.trim().replace(/"/g,''));
-    const obj = {};
-    headers.forEach((h,i)=>obj[h]=cols[i]||'');
-    return obj;
-  });
-  return rows;
-}
-
-function buildCalendar(events) {
+function buildCalendar() {
   const calendar = document.getElementById("calendar");
   calendar.innerHTML = "";
-  // get current month and year
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
 
-  // get first day of month and total days
-  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
-  const totalDays = new Date(year, month+1, 0).getDate();
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
 
-  // fill grid with empty days
-  for(let i=0;i<firstDay;i++){
+  document.getElementById("month-year").textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
+  // Empty days before first day
+  for (let i = 0; i < firstDay; i++) {
     const empty = document.createElement("div");
-    empty.className="day";
+    empty.className = "day";
     calendar.appendChild(empty);
   }
 
-  for(let d=1;d<=totalDays;d++){
+  for (let d = 1; d <= totalDays; d++) {
     const dayDiv = document.createElement("div");
-    dayDiv.className="day";
+    dayDiv.className = "day";
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
     const dateNum = document.createElement("span");
-    dateNum.className="date-num";
+    dateNum.className = "date-num";
     dateNum.textContent = d;
     dayDiv.appendChild(dateNum);
 
-    // check if event exists on this date
-    const ev = events.find(e=>e.DATE===dateStr);
-    if(ev){
+    const ev = events.find(e => e.DATE === dateStr);
+    if (ev) {
       const name = document.createElement("span");
-      name.className="event-name";
+      name.className = "event-name";
       name.textContent = ev.PROGRAM || "";
       dayDiv.appendChild(name);
 
       const tooltip = document.createElement("div");
-      tooltip.className="tooltip";
+      tooltip.className = "tooltip";
       tooltip.innerHTML = `
         <strong>${ev.PROGRAM || ""}</strong><br>
         Location: ${ev.LOCATION || ""}<br>
@@ -145,18 +153,17 @@ function buildCalendar(events) {
   }
 }
 
-async function init() {
-  try{
-    const csv = await fetchCsv(CSV_URL);
-    const events = parseCsv(csv);
-    buildCalendar(events);
-  }catch(e){
-    document.getElementById("calendar").textContent="Error loading calendar";
-    console.error(e);
-  }
-}
+document.getElementById("prev-month").addEventListener("click", () => {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  buildCalendar();
+});
 
-init();
+document.getElementById("next-month").addEventListener("click", () => {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  buildCalendar();
+});
+
+buildCalendar();
 </script>
 </body>
 </html>
