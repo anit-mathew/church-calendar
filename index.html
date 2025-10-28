@@ -3,49 +3,105 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Church Calendar 2026</title>
+<title>Church Calendar</title>
 <style>
-body { font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif; background: #f5f6fa; margin: 0; padding: 20px; color: #2d3748; }
-h1 { text-align: center; color: #2b6cb0; margin-bottom: 10px; }
-#status { text-align: center; margin-bottom: 10px; font-weight: bold; }
-#calendar-nav { text-align: center; margin-bottom: 10px; }
-#calendar-nav button { background: #2b6cb0; color: #fff; border: none; padding: 8px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
-#calendar-nav span { font-weight: bold; margin: 0 10px; }
+body {
+  font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  background: #f5f6fa;
+  margin: 0;
+  padding: 20px;
+  color: #2d3748;
+}
+h1 {
+  text-align: center;
+  color: #2b6cb0;
+  margin-bottom: 10px;
+}
+#status {
+  text-align: center;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+#calendar-nav {
+  text-align: center;
+  margin-bottom: 10px;
+}
+#calendar-nav button {
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  margin: 0 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+#calendar-nav span {
+  font-weight: bold;
+  margin: 0 10px;
+}
 #calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 10px;
   max-width: 1000px;
   margin: 0 auto;
-  position: relative; /* Add this */
-  z-index: 0;         /* base layer */
 }
-.day { background: #fff; border-radius: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); padding: 10px; min-height: 80px; position: relative; cursor: pointer; transition: transform 0.2s; }
-.day:hover { transform: translateY(-2px); }
-.day.today { border: 2px solid #2b6cb0; }
-.date-num { font-weight: bold; margin-bottom: 4px; display: block; }
-.event-name { font-size: 0.9rem; color: #2b6cb0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header {
+  font-weight: bold;
+  text-align: center;
+}
+.day {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  padding: 10px;
+  min-height: 80px;
+  position: relative; /* tooltip relative to day */
+  cursor: pointer;
+  transition: transform 0.2s;
+  z-index: 1; /* base z-index */
+}
+.day:hover {
+  transform: translateY(-2px);
+}
+.day.today {
+  border: 2px solid #2b6cb0;
+}
+.date-num {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: block;
+}
+.event-name {
+  font-size: 0.9rem;
+  color: #2b6cb0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .tooltip {
   display: none;
-  position: absolute;
-  top: 100%;
-  left: 10px;
+  position: absolute; /* relative to .day */
+  top: 100%;          /* below the day box */
+  left: 50%;          /* centered horizontally */
+  transform: translateX(-50%);
   background: #2b6cb0;
   color: #fff;
   padding: 8px;
   border-radius: 6px;
   font-size: 0.8rem;
-  z-index: 9999; /* increase z-index */
+  z-index: 100;       /* above all other cells */
   width: max-content;
   max-width: 250px;
-  box-shadow: 0 5px 10px rgba(0,0,0,0.3); /* optional shadow */
+  box-shadow: 0 5px 10px rgba(0,0,0,0.3);
 }
-.day:hover .tooltip { display: block; }
-.header { font-weight: bold; text-align: center; }
+.day:hover .tooltip {
+  display: block;
+}
 </style>
 </head>
 <body>
-<h1>Church Calendar</h1>
+<h1>Church Calendar 2026</h1>
 <div id="status">Loading data...</div>
 <div id="calendar-nav">
 <button id="prev-month">&lt; Prev</button>
@@ -61,121 +117,123 @@ let events = [];
 let currentDate = new Date();
 const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
+// Load CSV data with dynamic header detection
 async function loadData() {
-    const status = document.getElementById("status");
-    try {
-        const res = await fetch(CSV_URL);
-        const text = await res.text();
-        Papa.parse(text, {
-            skipEmptyLines: true,
-            complete: function(results){
-                const data = results.data;
+  const status = document.getElementById("status");
+  try {
+    const res = await fetch(CSV_URL);
+    const text = await res.text();
+    Papa.parse(text, {
+      skipEmptyLines: true,
+      complete: function(results){
+        const data = results.data;
 
-                // Find the header row dynamically
-                let headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toUpperCase().includes("DATE")));
-                if(headerRowIndex < 0){
-                    status.textContent = "Error: Header row not found!";
-                    status.style.color = "red";
-                    return;
-                }
+        // Find header row dynamically
+        let headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toUpperCase().includes("DATE")));
+        if(headerRowIndex < 0){
+          status.textContent = "Error: Header row not found!";
+          status.style.color = "red";
+          return;
+        }
 
-                const headers = data[headerRowIndex].map(h => (h||'').trim().toUpperCase());
-                const dataRows = data.slice(headerRowIndex+1);
+        const headers = data[headerRowIndex].map(h => (h||'').trim().toUpperCase());
+        const dataRows = data.slice(headerRowIndex+1);
 
-                events = dataRows.map(row => {
-                    const obj = {};
-                    headers.forEach((h,i) => obj[h] = (row[i]||'').trim());
+        events = dataRows.map(row => {
+          const obj = {};
+          headers.forEach((h,i) => obj[h] = (row[i]||'').trim());
 
-                    // Parse the date
-                    if(obj['DATE'] && obj['DATE'] !== ""){
-                        const parts = obj['DATE'].split(',');
-                        const datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
-                        if(datePart){
-                            const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
-                            const month = monthMap[monthName];
-                            const day = parseInt(dayStr);
-                            const year = parseInt(yearStr);
-                            if(month && day && year){
-                                obj.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                            }
-                        }
-                    }
-                    return obj;
-                }).filter(e => e.parsedDate); // keep only valid dates
-
-                status.textContent = `Data loaded successfully! ${events.length} events found.`;
-                status.style.color = "green";
-                buildCalendar();
+          // Parse the date
+          if(obj['DATE'] && obj['DATE'] !== ""){
+            const parts = obj['DATE'].split(',');
+            const datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
+            if(datePart){
+              const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
+              const month = monthMap[monthName];
+              const day = parseInt(dayStr);
+              const year = parseInt(yearStr);
+              if(month && day && year){
+                obj.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+              }
             }
-        });
-    } catch(e){
-        console.error(e);
-        status.textContent = "Error loading data!";
-        status.style.color = "red";
-    }
+          }
+          return obj;
+        }).filter(e => e.parsedDate);
+
+        status.textContent = `Data loaded successfully! ${events.length} events found.`;
+        status.style.color = "green";
+        buildCalendar();
+      }
+    });
+  } catch(e){
+    console.error(e);
+    status.textContent = "Error loading data!";
+    status.style.color = "red";
+  }
 }
 
+// Build calendar
 function buildCalendar() {
-    const calendar = document.getElementById("calendar");
-    calendar.innerHTML = "";
-    const month = currentDate.getMonth();
-    const year = currentDate.getFullYear();
-    document.getElementById("month-year").textContent = currentDate.toLocaleString('default',{month:'long',year:'numeric'});
+  const calendar = document.getElementById("calendar");
+  calendar.innerHTML = "";
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
+  document.getElementById("month-year").textContent = currentDate.toLocaleString('default',{month:'long',year:'numeric'});
 
-    const daysOfWeek = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    for(let day of daysOfWeek){
-        const header = document.createElement("div");
-        header.className = "header";
-        header.textContent = day;
-        calendar.appendChild(header);
+  const daysOfWeek = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  for(let day of daysOfWeek){
+    const header = document.createElement("div");
+    header.className = "header";
+    header.textContent = day;
+    calendar.appendChild(header);
+  }
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month+1, 0).getDate();
+  const today = new Date();
+
+  for(let i=0;i<firstDay;i++){
+    const empty = document.createElement("div");
+    empty.className="day";
+    calendar.appendChild(empty);
+  }
+
+  for(let d=1; d<=totalDays; d++){
+    const dayDiv = document.createElement("div");
+    dayDiv.className="day";
+    if(today.getDate()===d && today.getMonth()===month && today.getFullYear()===year){
+      dayDiv.classList.add("today");
     }
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateNum = document.createElement("span");
+    dateNum.className="date-num";
+    dateNum.textContent = d;
+    dayDiv.appendChild(dateNum);
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month+1, 0).getDate();
-    const today = new Date();
-
-    for(let i=0;i<firstDay;i++){
-        const empty = document.createElement("div");
-        empty.className="day";
-        calendar.appendChild(empty);
-    }
-
-    for(let d=1; d<=totalDays; d++){
-        const dayDiv = document.createElement("div");
-        dayDiv.className="day";
-        if(today.getDate()===d && today.getMonth()===month && today.getFullYear()===year){
-            dayDiv.classList.add("today");
+    const ev = events.filter(e => e.parsedDate === dateStr);
+    ev.forEach(event=>{
+      if(event.PROGRAM || event.LOCATION || event.CONTACT || event.COMMENTS){
+        if(event.PROGRAM){
+          const name = document.createElement("span");
+          name.className="event-name";
+          name.textContent = event.PROGRAM;
+          dayDiv.appendChild(name);
         }
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const dateNum = document.createElement("span");
-        dateNum.className="date-num";
-        dateNum.textContent = d;
-        dayDiv.appendChild(dateNum);
 
-        const ev = events.filter(e => e.parsedDate === dateStr);
-        ev.forEach(event=>{
-            if(event.PROGRAM || event.LOCATION || event.CONTACT || event.COMMENTS){
-                if(event.PROGRAM){
-                    const name = document.createElement("span");
-                    name.className="event-name";
-                    name.textContent = event.PROGRAM;
-                    dayDiv.appendChild(name);
-                }
+        const tooltip = document.createElement("div");
+        tooltip.className="tooltip";
+        tooltip.innerHTML = `
+          <strong>${event.PROGRAM || ""}</strong><br>
+          Location: ${event.LOCATION || ""}<br>
+          Contact: ${event.CONTACT || ""}<br>
+          Comments: ${event.COMMENTS || ""}
+        `;
+        dayDiv.appendChild(tooltip);
+      }
+    });
 
-                const tooltip = document.createElement("div");
-                tooltip.className="tooltip";
-                tooltip.innerHTML = `
-                    <strong>${event.PROGRAM || ""}</strong><br>
-                    Location: ${event.LOCATION || ""}<br>
-                    Contact: ${event.CONTACT || ""}<br>
-                    Comments: ${event.COMMENTS || ""}
-                `;
-                dayDiv.appendChild(tooltip);
-            }
-        });
-
-        calendar.appendChild(dayDiv);
-    }
+    calendar.appendChild(dayDiv);
+  }
 }
 
 // Month navigation
