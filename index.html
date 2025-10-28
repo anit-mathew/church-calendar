@@ -23,7 +23,7 @@ h1 { text-align: center; color: #2b6cb0; margin-bottom: 10px; }
 </style>
 </head>
 <body>
-<h1>ICANJ Church Calendar 2026 </h1>
+<h1>Church Calendar</h1>
 <div id="status">Loading data...</div>
 <div id="calendar-nav">
 <button id="prev-month">&lt; Prev</button>
@@ -39,7 +39,6 @@ let events = [];
 let currentDate = new Date();
 const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
-// Load CSV and dynamically detect header row
 async function loadData() {
     const status = document.getElementById("status");
     try {
@@ -49,10 +48,11 @@ async function loadData() {
             skipEmptyLines: true,
             complete: function(results){
                 const data = results.data;
-                // Find header row dynamically
-                const headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toUpperCase().includes("DATE")));
+
+                // Find the header row dynamically
+                let headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toUpperCase().includes("DATE")));
                 if(headerRowIndex < 0){
-                    status.textContent = "No header row found in CSV!";
+                    status.textContent = "Error: Header row not found!";
                     status.style.color = "red";
                     return;
                 }
@@ -60,13 +60,14 @@ async function loadData() {
                 const headers = data[headerRowIndex].map(h => (h||'').trim().toUpperCase());
                 const dataRows = data.slice(headerRowIndex+1);
 
-                events = dataRows.map(row=>{
+                events = dataRows.map(row => {
                     const obj = {};
-                    headers.forEach((h,i)=> obj[h] = (row[i]||'').trim());
-                    // parse date
-                    if(obj.DATE && obj.DATE!==""){
-                        const parts = obj.DATE.split(',');
-                        const datePart = parts.slice(1).join(',').trim();
+                    headers.forEach((h,i) => obj[h] = (row[i]||'').trim());
+
+                    // Parse the date
+                    if(obj['DATE'] && obj['DATE'] !== ""){
+                        const parts = obj['DATE'].split(',');
+                        const datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
                         if(datePart){
                             const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
                             const month = monthMap[monthName];
@@ -78,9 +79,8 @@ async function loadData() {
                         }
                     }
                     return obj;
-                }).filter(e=>e.parsedDate);
+                }).filter(e => e.parsedDate); // keep only valid dates
 
-                console.log(events); // debug in browser console
                 status.textContent = `Data loaded successfully! ${events.length} events found.`;
                 status.style.color = "green";
                 buildCalendar();
@@ -93,8 +93,7 @@ async function loadData() {
     }
 }
 
-// Build calendar
-function buildCalendar(){
+function buildCalendar() {
     const calendar = document.getElementById("calendar");
     calendar.innerHTML = "";
     const month = currentDate.getMonth();
@@ -104,13 +103,13 @@ function buildCalendar(){
     const daysOfWeek = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     for(let day of daysOfWeek){
         const header = document.createElement("div");
-        header.className="header";
+        header.className = "header";
         header.textContent = day;
         calendar.appendChild(header);
     }
 
-    const firstDay = new Date(year, month,1).getDay();
-    const totalDays = new Date(year, month+1,0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month+1, 0).getDate();
     const today = new Date();
 
     for(let i=0;i<firstDay;i++){
@@ -131,4 +130,37 @@ function buildCalendar(){
         dateNum.textContent = d;
         dayDiv.appendChild(dateNum);
 
-       
+        const ev = events.filter(e => e.parsedDate === dateStr);
+        ev.forEach(event=>{
+            if(event.PROGRAM || event.LOCATION || event.CONTACT || event.COMMENTS){
+                if(event.PROGRAM){
+                    const name = document.createElement("span");
+                    name.className="event-name";
+                    name.textContent = event.PROGRAM;
+                    dayDiv.appendChild(name);
+                }
+
+                const tooltip = document.createElement("div");
+                tooltip.className="tooltip";
+                tooltip.innerHTML = `
+                    <strong>${event.PROGRAM || ""}</strong><br>
+                    Location: ${event.LOCATION || ""}<br>
+                    Contact: ${event.CONTACT || ""}<br>
+                    Comments: ${event.COMMENTS || ""}
+                `;
+                dayDiv.appendChild(tooltip);
+            }
+        });
+
+        calendar.appendChild(dayDiv);
+    }
+}
+
+// Month navigation
+document.getElementById("prev-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()-1); buildCalendar();});
+document.getElementById("next-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()+1); buildCalendar();});
+
+loadData();
+</script>
+</body>
+</html>
