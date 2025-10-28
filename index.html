@@ -5,16 +5,109 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Church Calendar</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial; padding:20px; background:#f7f7f8}
-    h1{margin-bottom:8px}
-    table{width:100%; border-collapse:collapse; background:white; box-shadow:0 1px 3px rgba(0,0,0,0.08)}
-    th,td{padding:10px; border-bottom:1px solid #eee; text-align:left}
-    th{background:#fafafa}
-    .date{white-space:nowrap; width:220px}
-    .comments{color:#555}
-    .empty{color:#777; padding:40px; text-align:center}
-    @media(min-width:900px){
-      .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    /* --- Base Styles --- */
+    :root {
+      --bg: #f5f6fa;
+      --card-bg: #fff;
+      --accent: #2b6cb0;
+      --accent-light: #e2e8f0;
+      --text-dark: #2d3748;
+      --text-light: #718096;
+      --shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    body {
+      font-family: "Segoe UI", Roboto, system-ui, Arial;
+      background: var(--bg);
+      margin: 0;
+      padding: 40px 20px;
+      color: var(--text-dark);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 4px;
+      text-align: center;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    #lastUpdated {
+      text-align: center;
+      color: var(--text-light);
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+    }
+
+    /* --- Table Container --- */
+    #calendarContainer {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      padding: 10px 0;
+      animation: fadeIn 0.4s ease;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.96rem;
+      min-width: 600px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--accent-light);
+      text-align: left;
+    }
+
+    th {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    td {
+      color: var(--text-dark);
+    }
+
+    tr:hover td {
+      background: #f0f7ff;
+      transition: background 0.2s ease;
+    }
+
+    .date {
+      white-space: nowrap;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .comments {
+      color: var(--text-light);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px;
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+
+    /* --- Grid view for future expansion --- */
+    @media(min-width: 900px) {
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+    }
+
+    /* --- Animations --- */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -25,60 +118,58 @@
 
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsF_4-QMue4gC-b8i13mBH_7uFpLjmvK6Zs0-jS1mJcR6V-_EN-mz-WF44x8xlqP_XzZgoOx_y9JE6/pub?gid=0&single=true&output=csv";
-// Replace <<SHEET_ID>> and <<GID>> with your published CSV link values.
 
-async function fetchCsv(url){
+async function fetchCsv(url) {
   const r = await fetch(url);
-  if(!r.ok) throw new Error("Failed to fetch sheet: " + r.status);
+  if (!r.ok) throw new Error("Failed to fetch sheet: " + r.status);
   return await r.text();
 }
 
-function parseCsv(text){
-  // Basic CSV -> array of rows (naive, good for simple sheets)
+function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
   return lines.map(line => {
-    // split by comma but handle quoted commas
     const row = [];
     let cur = "", inQuotes = false;
-    for(let i=0;i<line.length;i++){
-      const ch = line[i];
-      if(ch === '"') { inQuotes = !inQuotes; continue; }
-      if(ch === "," && !inQuotes){ row.push(cur.trim()); cur=""; } else cur += ch;
+    for (let ch of line) {
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === "," && !inQuotes) { row.push(cur.trim()); cur = ""; }
+      else cur += ch;
     }
     row.push(cur.trim());
     return row;
   });
 }
 
-function buildTable(rows){
-  if(rows.length <= 1) return '<div class="empty">No events found</div>';
+function buildTable(rows) {
+  if (rows.length <= 1) return '<div class="empty">No upcoming events found</div>';
   const headers = rows[0];
   const body = rows.slice(1);
   let html = '<table><thead><tr>';
-  headers.forEach(h => html += `<th>${escapeHtml(h||"")}</th>`);
+  headers.forEach(h => html += `<th>${escapeHtml(h || "")}</th>`);
   html += '</tr></thead><tbody>';
   body.forEach(r => {
     html += '<tr>';
-    headers.forEach((h,i) => html += `<td class="${i===0?'date':''}">${escapeHtml(r[i]||'')}</td>`);
+    headers.forEach((h, i) => html += `<td class="${i===0 ? 'date' : ''}">${escapeHtml(r[i] || '')}</td>`);
     html += '</tr>';
   });
   html += '</tbody></table>';
   return html;
 }
 
-function escapeHtml(s){
+function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-async function init(){
-  try{
-    document.getElementById('lastUpdated').textContent = "Loading...";
+async function init() {
+  try {
+    document.getElementById('lastUpdated').textContent = "Loading latest updates...";
     const csv = await fetchCsv(CSV_URL);
     const rows = parseCsv(csv);
     document.getElementById('calendarContainer').innerHTML = buildTable(rows);
-    document.getElementById('lastUpdated').textContent = "Last fetched: " + new Date().toLocaleString();
-  }catch(err){
-    document.getElementById('calendarContainer').innerHTML = '<div class="empty">Error loading calendar: '+escapeHtml(err.message)+'</div>';
+    document.getElementById('lastUpdated').textContent = "Last updated: " + new Date().toLocaleString();
+  } catch (err) {
+    document.getElementById('calendarContainer').innerHTML =
+      '<div class="empty">Error loading calendar: ' + escapeHtml(err.message) + '</div>';
     document.getElementById('lastUpdated').textContent = "";
     console.error(err);
   }
