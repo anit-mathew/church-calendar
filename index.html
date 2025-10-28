@@ -7,6 +7,7 @@
 <style>
   body { font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif; background: #f5f6fa; margin: 0; padding: 20px; color: #2d3748; }
   h1 { text-align: center; color: #2b6cb0; margin-bottom: 10px; }
+  #status { text-align: center; margin-bottom: 10px; font-weight: bold; }
   #calendar-nav { text-align: center; margin-bottom: 10px; }
   #calendar-nav button { background: #2b6cb0; color: #fff; border: none; padding: 8px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
   #calendar-nav span { font-weight: bold; margin: 0 10px; }
@@ -21,6 +22,7 @@
 </head>
 <body>
 <h1>Church Calendar</h1>
+<div id="status">Loading data...</div>
 <div id="calendar-nav">
   <button id="prev-month">&lt; Prev</button>
   <span id="month-year"></span>
@@ -33,14 +35,12 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV
 let events = [];
 let currentDate = new Date();
 
-// Fetch CSV
 async function fetchCsv(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch CSV");
   return await res.text();
 }
 
-// Parse CSV
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",").map(h => h.trim());
@@ -48,7 +48,6 @@ function parseCsv(text) {
     const cols = line.split(",").map(c => c.trim());
     const obj = {};
     headers.forEach((h,i) => obj[h] = cols[i] || '');
-    // Parse DATE column like "Thursday, January 1, 2026"
     if(obj.DATE){
       const d = new Date(obj.DATE);
       obj.parsedDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -57,7 +56,6 @@ function parseCsv(text) {
   });
 }
 
-// Build calendar
 function buildCalendar() {
   const calendar = document.getElementById("calendar");
   calendar.innerHTML = "";
@@ -106,19 +104,27 @@ function buildCalendar() {
   }
 }
 
-// Month navigation
 document.getElementById("prev-month").addEventListener("click", () => { currentDate.setMonth(currentDate.getMonth()-1); buildCalendar(); });
 document.getElementById("next-month").addEventListener("click", () => { currentDate.setMonth(currentDate.getMonth()+1); buildCalendar(); });
 
-// Init
 async function init() {
+  const status = document.getElementById("status");
   try {
     const csv = await fetchCsv(CSV_URL);
     events = parseCsv(csv);
+    if(events.length > 0){
+      status.textContent = `Data loaded successfully! ${events.length} events found.`;
+      status.style.color = "green";
+    } else {
+      status.textContent = "No events found in the sheet.";
+      status.style.color = "orange";
+    }
     buildCalendar();
   } catch(e){
     console.error(e);
-    document.getElementById("calendar").textContent = "Error loading calendar.";
+    status.textContent = "Error loading data from Google Sheet!";
+    status.style.color = "red";
+    document.getElementById("calendar").textContent = "Cannot display calendar.";
   }
 }
 
