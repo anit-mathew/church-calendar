@@ -11,7 +11,15 @@ h1 { text-align: center; color: #2b6cb0; margin-bottom: 10px; }
 #calendar-nav { text-align: center; margin-bottom: 10px; }
 #calendar-nav button { background: #2b6cb0; color: #fff; border: none; padding: 8px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
 #calendar-nav span { font-weight: bold; margin: 0 10px; }
-#calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; max-width: 1000px; margin: 0 auto; }
+#calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  max-width: 1000px;
+  margin: 0 auto;
+  position: relative; /* Add this */
+  z-index: 0;         /* base layer */
+}
 .day { background: #fff; border-radius: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); padding: 10px; min-height: 80px; position: relative; cursor: pointer; transition: transform 0.2s; }
 .day:hover { transform: translateY(-2px); }
 .day.today { border: 2px solid #2b6cb0; }
