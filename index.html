@@ -14,10 +14,12 @@
   #calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; max-width: 1000px; margin: 0 auto; }
   .day { background: #fff; border-radius: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); padding: 10px; min-height: 80px; position: relative; cursor: pointer; transition: transform 0.2s; }
   .day:hover { transform: translateY(-2px); }
+  .day.today { border: 2px solid #2b6cb0; }
   .date-num { font-weight: bold; margin-bottom: 4px; display: block; }
   .event-name { font-size: 0.9rem; color: #2b6cb0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tooltip { display: none; position: absolute; top: 100%; left: 10px; background: #2b6cb0; color: #fff; padding: 8px; border-radius: 6px; font-size: 0.8rem; z-index: 10; width: max-content; max-width: 200px; }
   .day:hover .tooltip { display: block; }
+  .header { font-weight: bold; text-align: center; }
 </style>
 </head>
 <body>
@@ -30,71 +32,85 @@
 </div>
 <div id="calendar"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
 let events = [];
 let currentDate = new Date();
+const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
-// Manual month map
-const monthMap = {
-  "January":1, "February":2, "March":3, "April":4,
-  "May":5, "June":6, "July":7, "August":8,
-  "September":9, "October":10, "November":11, "December":12
-};
-
-// Parse CSV
-async function fetchCsv(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch CSV");
-  return await res.text();
-}
-
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h=>h.trim());
-  return lines.slice(1).map(line=>{
-    const cols = line.split(",").map(c=>c.trim());
-    const obj = {};
-    headers.forEach((h,i)=>obj[h]=cols[i]||'');
-
-    if(obj.DATE){
-      // Remove weekday
-      let parts = obj.DATE.split(',');
-      let datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
-      const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
-      const month = monthMap[monthName];
-      const day = parseInt(dayStr);
-      const year = parseInt(yearStr);
-      if(month && day && year){
-        obj.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+// Fetch and parse CSV
+async function loadData() {
+  const status = document.getElementById("status");
+  try{
+    const res = await fetch(CSV_URL);
+    const text = await res.text();
+    Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results){
+        events = results.data.map(obj=>{
+          if(obj.DATE){
+            // Remove weekday
+            let parts = obj.DATE.split(',');
+            let datePart = parts.slice(1).join(',').trim();
+            const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
+            const month = monthMap[monthName];
+            const day = parseInt(dayStr);
+            const year = parseInt(yearStr);
+            if(month && day && year){
+              obj.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            }
+          }
+          return obj;
+        });
+        status.textContent = `Data loaded successfully! ${events.length} events found.`;
+        status.style.color = "green";
+        buildCalendar();
       }
-    }
-    return obj;
-  });
+    });
+  }catch(e){
+    console.error(e);
+    status.textContent = "Error loading data!";
+    status.style.color = "red";
+  }
 }
 
-// Build calendar
-function buildCalendar() {
+// Build calendar with day headers
+function buildCalendar(){
   const calendar = document.getElementById("calendar");
   calendar.innerHTML = "";
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
-  document.getElementById("month-year").textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+  document.getElementById("month-year").textContent = currentDate.toLocaleString('default',{month:'long',year:'numeric'});
+
+  // Add day headers
+  const daysOfWeek = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  for(let day of daysOfWeek){
+    const header = document.createElement("div");
+    header.className = "header";
+    header.textContent = day;
+    calendar.appendChild(header);
+  }
 
   const firstDay = new Date(year, month, 1).getDay();
-  const totalDays = new Date(year, month + 1, 0).getDate();
+  const totalDays = new Date(year, month+1, 0).getDate();
 
+  // Fill empty days
   for(let i=0;i<firstDay;i++){
     const empty = document.createElement("div");
     empty.className="day";
     calendar.appendChild(empty);
   }
 
+  const today = new Date();
   for(let d=1; d<=totalDays; d++){
     const dayDiv = document.createElement("div");
     dayDiv.className="day";
+    if(today.getDate()===d && today.getMonth()===month && today.getFullYear()===year){
+      dayDiv.classList.add("today");
+    }
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-
     const dateNum = document.createElement("span");
     dateNum.className="date-num";
     dateNum.textContent = d;
@@ -126,29 +142,7 @@ function buildCalendar() {
 document.getElementById("prev-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()-1); buildCalendar();});
 document.getElementById("next-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()+1); buildCalendar();});
 
-// Init
-async function init(){
-  const status = document.getElementById("status");
-  try{
-    const csv = await fetchCsv(CSV_URL);
-    events = parseCsv(csv);
-    if(events.length>0){
-      status.textContent = `Data loaded successfully! ${events.length} events found.`;
-      status.style.color = "green";
-    } else {
-      status.textContent = "No events found in the sheet.";
-      status.style.color = "orange";
-    }
-    buildCalendar();
-  }catch(e){
-    console.error(e);
-    status.textContent = "Error loading data from Google Sheet!";
-    status.style.color = "red";
-    document.getElementById("calendar").textContent="Cannot display calendar.";
-  }
-}
-
-init();
+loadData();
 </script>
 </body>
 </html>
