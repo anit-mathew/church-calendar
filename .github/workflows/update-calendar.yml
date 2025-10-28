@@ -75,7 +75,11 @@ jobs:
           for r in rows:
             # pad row to headers length
             r = r + [''] * (len(headers) - len(r))
-            row_html = "<tr>" + "".join(f"<td class='{'date' if i==0 else ''}'>{html.escape(col)}</td>" for i,col in enumerate(r)) + "</tr>"
+            row_html = "<tr>" + "".join(
+    f"<td class='{'date' if i==0 else ''}'>{html.escape(col)}</td>".replace("{", "{{").replace("}", "}}")
+    for i, col in enumerate(r)
+).replace("{{'date' if i==0 else ''}}", "{'date' if i==0 else ''}") + "</tr>"
+
             tbody_rows.append(row_html)
 
           out = html_out.format(updated=html.escape(__import__('datetime').datetime.utcnow().isoformat() + " UTC"),
