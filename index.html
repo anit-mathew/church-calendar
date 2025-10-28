@@ -35,12 +35,14 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV
 let events = [];
 let currentDate = new Date();
 
+// Fetch CSV
 async function fetchCsv(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch CSV");
   return await res.text();
 }
 
+// Parse CSV
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",").map(h => h.trim());
@@ -48,14 +50,22 @@ function parseCsv(text) {
     const cols = line.split(",").map(c => c.trim());
     const obj = {};
     headers.forEach((h,i) => obj[h] = cols[i] || '');
+
+    // Parse DATE like "Thursday, January 1, 2026"
     if(obj.DATE){
-      const d = new Date(obj.DATE);
-      obj.parsedDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      // Remove weekday if present
+      let parts = obj.DATE.split(',');
+      let dateStr = parts.slice(1).join(',').trim(); // "January 1, 2026"
+      const d = new Date(dateStr);
+      if(!isNaN(d)){
+        obj.parsedDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
     }
     return obj;
   });
 }
 
+// Build calendar
 function buildCalendar() {
   const calendar = document.getElementById("calendar");
   calendar.innerHTML = "";
@@ -66,6 +76,7 @@ function buildCalendar() {
   const firstDay = new Date(year, month, 1).getDay();
   const totalDays = new Date(year, month + 1, 0).getDate();
 
+  // Fill empty days before first day
   for(let i=0;i<firstDay;i++){
     const empty = document.createElement("div");
     empty.className = "day";
@@ -104,9 +115,11 @@ function buildCalendar() {
   }
 }
 
+// Month navigation
 document.getElementById("prev-month").addEventListener("click", () => { currentDate.setMonth(currentDate.getMonth()-1); buildCalendar(); });
 document.getElementById("next-month").addEventListener("click", () => { currentDate.setMonth(currentDate.getMonth()+1); buildCalendar(); });
 
+// Init
 async function init() {
   const status = document.getElementById("status");
   try {
