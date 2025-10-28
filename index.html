@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Church Calendar 2026 </title>
+<title>Church Calendar</title>
 <style>
 body { font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif; background: #f5f6fa; margin: 0; padding: 20px; color: #2d3748; }
 h1 { text-align: center; color: #2b6cb0; margin-bottom: 10px; }
@@ -23,7 +23,7 @@ h1 { text-align: center; color: #2b6cb0; margin-bottom: 10px; }
 </style>
 </head>
 <body>
-<h1>Church Calendar 2026</h1>
+<h1>ICANJ Church Calendar 2026 </h1>
 <div id="status">Loading data...</div>
 <div id="calendar-nav">
 <button id="prev-month">&lt; Prev</button>
@@ -39,39 +39,48 @@ let events = [];
 let currentDate = new Date();
 const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
-// Load CSV and parse
+// Load CSV and dynamically detect header row
 async function loadData() {
     const status = document.getElementById("status");
-    try{
+    try {
         const res = await fetch(CSV_URL);
         const text = await res.text();
         Papa.parse(text, {
-            header:true,
-            skipEmptyLines:true,
-            complete:function(results){
-                events = results.data.map(obj=>{
-                    // Trim keys and values
-                    const cleaned = {};
-                    Object.keys(obj).forEach(k => cleaned[k.trim().toUpperCase()] = (obj[k] || '').trim());
+            skipEmptyLines: true,
+            complete: function(results){
+                const data = results.data;
+                // Find header row dynamically
+                const headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toUpperCase().includes("DATE")));
+                if(headerRowIndex < 0){
+                    status.textContent = "No header row found in CSV!";
+                    status.style.color = "red";
+                    return;
+                }
 
-                    // Parse date
-                    if(cleaned['DATE'] && cleaned['DATE'] !== ""){
-                        let parts = cleaned['DATE'].split(',');
-                        let datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
+                const headers = data[headerRowIndex].map(h => (h||'').trim().toUpperCase());
+                const dataRows = data.slice(headerRowIndex+1);
+
+                events = dataRows.map(row=>{
+                    const obj = {};
+                    headers.forEach((h,i)=> obj[h] = (row[i]||'').trim());
+                    // parse date
+                    if(obj.DATE && obj.DATE!==""){
+                        const parts = obj.DATE.split(',');
+                        const datePart = parts.slice(1).join(',').trim();
                         if(datePart){
                             const [monthName, dayStr, yearStr] = datePart.replace(/,/g,'').split(' ');
                             const month = monthMap[monthName];
                             const day = parseInt(dayStr);
                             const year = parseInt(yearStr);
                             if(month && day && year){
-                                cleaned.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                                obj.parsedDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
                             }
                         }
                     }
-                    return cleaned;
-                }).filter(e => e.parsedDate); // keep only valid rows
+                    return obj;
+                }).filter(e=>e.parsedDate);
 
-                console.log(events); // confirm in browser console
+                console.log(events); // debug in browser console
                 status.textContent = `Data loaded successfully! ${events.length} events found.`;
                 status.style.color = "green";
                 buildCalendar();
@@ -92,7 +101,6 @@ function buildCalendar(){
     const year = currentDate.getFullYear();
     document.getElementById("month-year").textContent = currentDate.toLocaleString('default',{month:'long',year:'numeric'});
 
-    // Day headers
     const daysOfWeek = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     for(let day of daysOfWeek){
         const header = document.createElement("div");
@@ -123,38 +131,4 @@ function buildCalendar(){
         dateNum.textContent = d;
         dayDiv.appendChild(dateNum);
 
-        // Show events (even empty PROGRAM, still show tooltip if comments exist)
-        const ev = events.filter(e=>e.parsedDate===dateStr);
-        ev.forEach(event=>{
-            if(event.PROGRAM || event.LOCATION || event.CONTACT || event.COMMENTS){
-                if(event.PROGRAM){
-                    const name = document.createElement("span");
-                    name.className="event-name";
-                    name.textContent = event.PROGRAM;
-                    dayDiv.appendChild(name);
-                }
-
-                const tooltip = document.createElement("div");
-                tooltip.className="tooltip";
-                tooltip.innerHTML = `
-                    <strong>${event.PROGRAM || ""}</strong><br>
-                    Location: ${event.LOCATION || ""}<br>
-                    Contact: ${event.CONTACT || ""}<br>
-                    Comments: ${event.COMMENTS || ""}
-                `;
-                dayDiv.appendChild(tooltip);
-            }
-        });
-
-        calendar.appendChild(dayDiv);
-    }
-}
-
-// Month navigation
-document.getElementById("prev-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()-1); buildCalendar();});
-document.getElementById("next-month").addEventListener("click",()=>{currentDate.setMonth(currentDate.getMonth()+1); buildCalendar();});
-
-loadData();
-</script>
-</body>
-</html>
+       
