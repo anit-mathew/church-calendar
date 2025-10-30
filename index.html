@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Church Center Style Calendar</title>
+<title>ICANJ Church Calendar</title>
 
 <!-- PapaParse for CSV parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -18,26 +18,33 @@
     --accent: #ffd54f;
   }
 
-  html,body{height:100%;margin:0;font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-  body{background:var(--bg); color:#24313a; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+  html,body{height:100%;margin:0;font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; display:flex; align-items:center; justify-content:center; background:var(--bg);}
+  body{color:#24313a; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
 
   /* Container to mimic phone-style card */
-  .wrap{ max-width:420px; margin:28px auto; box-shadow:0 6px 20px rgba(0,0,0,0.12); border-radius:6px; overflow:hidden; background:var(--card); }
+  .wrap{ width:100%; max-width:720px; margin:auto; box-shadow:0 6px 20px rgba(0,0,0,0.12); border-radius:6px; overflow:hidden; background:var(--card); }
+
+  /* Top ICANJ strip */
+  .title-strip{
+    background: var(--blue-dark);
+    color:white;
+    font-weight:600;
+    font-size:1.25rem;
+    text-align:center;
+    padding:12px;
+  }
 
   /* Top blue calendar area */
   .top {
     background: linear-gradient(180deg,var(--blue),var(--blue-dark));
     color:white;
-    padding:12px 12px 6px 12px;
+    padding:12px;
   }
 
-  .top-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .icon-btn{ width:36px; height:36px; display:inline-grid; place-items:center; cursor:pointer; opacity:0.95; }
-  .title { font-weight:600; font-size:1.05rem; letter-spacing:0.2px; }
-  .icons-right{ display:flex; gap:8px; align-items:center; }
-
-  .nav-row{ display:flex; align-items:center; justify-content:space-between; margin-top:8px; color:rgba(255,255,255,0.9); }
+  .top-bar{ display:flex; align-items:center; justify-content:center; gap:8px; }
+  .nav-row{ display:flex; align-items:center; justify-content:center; margin-top:8px; color:rgba(255,255,255,0.9); gap:8px; }
   .nav-arrows{ display:flex; gap:8px; align-items:center; }
+  select{ padding:4px 6px; border-radius:4px; border:none; font-weight:600; }
 
   /* Weekday labels */
   .weekday-row{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:10px; color:rgba(255,255,255,0.85); font-size:0.78rem; text-align:center; padding:0 6px; }
@@ -46,14 +53,14 @@
   /* Calendar grid area inside blue card */
   .calendar-grid {
     display:grid;
-    grid-template-columns: repeat(7, 1fr); /* fixed columns */
+    grid-template-columns: repeat(7, 1fr);
     gap:8px;
     padding:10px;
   }
 
   .day {
     background: transparent;
-    min-height:44px;
+    min-height:50px;
     border-radius:6px;
     color:rgba(255,255,255,0.95);
     position:relative;
@@ -66,9 +73,8 @@
     cursor:pointer;
   }
 
-  .day.disabled{ opacity:0.25; cursor:default; } /* days outside month */
+  .day.disabled{ opacity:0.25; cursor:default; }
 
-  /* selected circle */
   .day .dot {
     width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     background: rgba(255,255,255,0.12);
@@ -80,18 +86,15 @@
     box-shadow: 0 0 0 10px rgba(255,255,255,0.03) inset;
   }
 
-  /* event badge (small dot in grid) */
   .event-dot {
     width:8px;height:8px;border-radius:50%;background:var(--accent); margin-top:6px; box-shadow:0 1px 0 rgba(0,0,0,0.08);
   }
 
-  /* Floating add button overlapping calendar & event list */
   .fab {
     position:absolute; right:18px; bottom:96px; width:52px; height:52px; border-radius:50%;
     background:#222; color:white; display:grid; place-items:center; box-shadow:0 8px 18px rgba(0,0,0,0.25); z-index:60; cursor:pointer;
   }
 
-  /* Bottom white panel for events (like screenshot) */
   .events-panel {
     background:var(--card);
     border-top-left-radius:10px;
@@ -111,13 +114,7 @@
   .event-title { font-weight:600; color:#22313a; }
   .event-meta { color:var(--muted); font-size:0.9rem; margin-top:4px; }
 
-  /* tooltip overlay (desktop) */
-  .tooltip {
-    position:absolute; left:50%; transform:translateX(-50%); top:calc(100% + 8px);
-    background:rgba(0,0,0,0.85); color:white; padding:8px 10px; border-radius:8px; font-size:0.85rem; z-index:50; white-space:normal; width:220px; display:none;
-    box-shadow:0 8px 20px rgba(0,0,0,0.2);
-  }
-  .day:hover .tooltip{ display:block; }
+  /* Remove tooltip entirely (hover effect discarded) */
 
   /* small screens adjustments */
   @media (max-width:420px) {
@@ -125,60 +122,25 @@
     .fab{ right:14px; bottom:120px; }
     .calendar-grid{ padding:8px; gap:6px; }
     .weekday-row{ padding:0 8px; }
-    .tooltip{ width:180px; left:50%; transform:translateX(-50%); }
   }
 
-  /* when day clicked on mobile show tooltip pinned as "show-tooltip" by JS */
-  .day.show-tooltip .tooltip { display:block; }
-
-  /* header icons style (white small) */
-  .svg-ico { width:20px; height:20px; opacity:0.95; }
-  .muted-white{ opacity:0.85; }
-
-  /* small helper for center of bottom area */
-  .panel-scroll { max-height:300px; overflow:auto; }
 </style>
 </head>
 <body>
 
 <div class="wrap" id="app">
+  <!-- Title strip -->
+  <div class="title-strip">ICANJ Church Calendar</div>
+
   <!-- TOP BLUE AREA -->
   <div class="top">
     <div class="top-bar">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="icon-btn" id="menuBtn" title="Menu">
-          <!-- hamburger -->
-          <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-        </div>
-        <div class="title" id="headerTitle">December 2025</div>
-      </div>
-
-      <div class="icons-right">
-        <div class="icon-btn" id="jumpToday" title="Jump to today">
-          <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4"/></svg>
-        </div>
-        <div class="icon-btn" id="searchBtn" title="Search">
-          <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M21 21l-4.35-4.35"/></svg>
-        </div>
-      </div>
-    </div>
-
-    <div class="nav-row">
-      <div class="nav-arrows">
-        <div class="icon-btn" id="prevMonth" title="Previous month" style="background:transparent;">
-          <svg class="svg-ico muted-white" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        </div>
-      </div>
-      <div style="opacity:0.95; font-weight:600;" id="navMonthYear">December 2025</div>
-      <div class="nav-arrows">
-        <div class="icon-btn" id="nextMonth" title="Next month" style="background:transparent;">
-          <svg class="svg-ico muted-white" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-      </div>
+      <!-- Month & Year selectors -->
+      <select id="monthSelect"></select>
+      <select id="yearSelect"></select>
     </div>
 
     <div class="weekday-row" aria-hidden="true">
-      <!-- Mon..Sun ordering like screenshot? screenshot shows Mon first; we'll use Mon-Sun -->
       <div class="weekday">Mon</div>
       <div class="weekday">Tue</div>
       <div class="weekday">Wed</div>
@@ -188,9 +150,7 @@
       <div class="weekday">Sun</div>
     </div>
 
-    <div class="calendar-grid" id="calendarGrid">
-      <!-- days will be injected here -->
-    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
   </div>
 
   <!-- FAB add button -->
@@ -206,94 +166,60 @@
 </div>
 
 <script>
-/* -------------------------
-   CONFIG
-   ------------------------- */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
+let events = [];
+let currentDate = new Date();
+let selectedDateStr = null;
 
-/* -------------------------
-   State
-   ------------------------- */
-let events = []; // parsed events with parsedDate
-let currentDate = new Date(); // controls displayed month
-let selectedDateStr = null; // yyyy-mm-dd of currently selected day
+const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
-// month map for manual parsing
-const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,
-  "July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
-
-/* -------------------------
-   Helpers
-   ------------------------- */
 function pad(n){ return String(n).padStart(2,'0'); }
 function toYMD(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function parseSheetDate(cell){
   if(!cell) return null;
-  // remove leading/trailing
   let s = cell.trim();
-  // Many entries like: "Thursday, January 1, 2026"
-  // Remove weekday before first comma
   const parts = s.split(',');
   if(parts.length>1){
-    const datePart = parts.slice(1).join(',').trim(); // "January 1, 2026"
+    const datePart = parts.slice(1).join(',').trim();
     const cleaned = datePart.replace(/,/g,'').trim();
-    const bits = cleaned.split(/\s+/); // ["January","1","2026"]
+    const bits = cleaned.split(/\s+/);
     if(bits.length>=3){
       const month = monthMap[bits[0]];
       const day = parseInt(bits[1].replace(/\D/g,''),10);
       const year = parseInt(bits[2],10);
-      if(month && day && year){
-        return `${year}-${pad(month)}-${pad(day)}`;
-      }
+      if(month && day && year) return `${year}-${pad(month)}-${pad(day)}`;
     }
   } else {
-    // fallback: try Date()
     const d = new Date(s);
     if(!isNaN(d)) return toYMD(d);
   }
   return null;
 }
 
-/* -------------------------
-   CSV LOADING (PapaParse with dynamic header detection)
-   ------------------------- */
 async function loadCsvAndParse(){
-  const statusEl = document.getElementById('panelList');
   try{
     const res = await fetch(CSV_URL);
     const text = await res.text();
     Papa.parse(text, {
       skipEmptyLines:true,
       complete: function(results){
-        const data = results.data; // array of arrays
-        // find header row index that contains "DATE" case-insensitive
+        const data = results.data;
         let headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toString().toUpperCase().includes("DATE")));
-        if(headerRowIndex < 0){
-          // fallback: try first row as header
-          headerRowIndex = 0;
-        }
+        if(headerRowIndex < 0) headerRowIndex = 0;
         const rawHeaders = data[headerRowIndex].map(h => (h||'').toString().trim().toUpperCase());
         const rows = data.slice(headerRowIndex+1);
 
-        // Map rows to objects with trimmed values and uppercase header keys
         const mapped = rows.map(row=>{
           const obj = {};
-          rawHeaders.forEach((h,i)=>{
-            obj[h] = (row[i]||'').toString().trim();
-          });
-          // parse date robustly
+          rawHeaders.forEach((h,i)=> obj[h] = (row[i]||'').toString().trim() );
           const parsed = parseSheetDate(obj['DATE'] || obj['DATE ']);
-          if(parsed){
-            obj.parsedDate = parsed;
-          }
+          if(parsed) obj.parsedDate = parsed;
           return obj;
-        }).filter(o => o.parsedDate); // keep only rows with valid dates
+        }).filter(o => o.parsedDate);
 
         events = mapped;
-        // update status area
-        const statusBox = document.getElementById('panelList');
-        // show number in top small status area
         document.getElementById('panelDate').textContent = `${events.length} events loaded`;
+        populateMonthYearSelectors();
         renderCalendar();
       }
     });
@@ -303,34 +229,21 @@ async function loadCsvAndParse(){
   }
 }
 
-/* -------------------------
-   Render calendar grid for currentDate month
-   ------------------------- */
 function renderCalendar(){
   const grid = document.getElementById('calendarGrid');
   grid.innerHTML = '';
-  const headerTitle = document.getElementById('headerTitle');
-  const navMonthYear = document.getElementById('navMonthYear');
-  headerTitle.textContent = currentDate.toLocaleString('default',{month:'long', year:'numeric'});
-  navMonthYear.textContent = headerTitle.textContent;
-
-  // We show week starting Monday (as screenshot). Adjust indices accordingly.
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstOfMonth = new Date(year, month, 1);
-  // get day index with Monday=0..Sunday=6
   const weekdayOfFirst = (firstOfMonth.getDay() + 6) % 7;
   const totalDays = new Date(year, month+1, 0).getDate();
 
-  // grid needs 7 * N cells (we'll just render days and leave empty cells for leading days)
-  // Add leading empty placeholders for Monday-start
   for(let i=0;i<weekdayOfFirst;i++){
     const empty = document.createElement('div');
     empty.className = 'day disabled';
     grid.appendChild(empty);
   }
 
-  // Render days 1..totalDays
   for(let d=1; d<=totalDays; d++){
     const dt = new Date(year, month, d);
     const ymd = toYMD(dt);
@@ -338,71 +251,34 @@ function renderCalendar(){
     dayEl.className = 'day';
     dayEl.dataset.ymd = ymd;
 
-    // dot (circle) for date number
     const dot = document.createElement('div');
     dot.className = 'dot';
     dot.textContent = d;
     dayEl.appendChild(dot);
 
-    // show small event-dot if any event exists on that day
-    const dayEvents = events.filter(e => e.parsedDate === ymd);
+    const dayEvents = events.filter(e => e.parsedDate === ymd && e.PROGRAM);
     if(dayEvents.length>0){
       const evDot = document.createElement('div');
       evDot.className = 'event-dot';
       dayEl.appendChild(evDot);
     }
 
-    // tooltip content (desktop)
-    if(dayEvents.length>0){
-      const tooltip = document.createElement('div');
-      tooltip.className = 'tooltip';
-      // show up to 3 event names
-      const items = dayEvents.slice(0,3).map(ev => `<strong>${escapeHtml(ev.PROGRAM||'Untitled')}</strong><div style="color:rgba(255,255,255,0.85);font-size:0.85rem;margin-top:6px">${escapeHtml(ev.LOCATION||'')}</div>`).join('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:8px 0">');
-      tooltip.innerHTML = items;
-      dayEl.appendChild(tooltip);
-    }
-
-    // mark selected
     if(selectedDateStr === ymd){
       dayEl.classList.add('selected');
-      // scroll bottom panel to this date
     }
 
-    // click handlers: select date and show events in bottom panel (tap-friendly)
     dayEl.addEventListener('click', (e) => {
       e.stopPropagation();
-      // toggle show-tooltip class for tap behavior
-      const all = document.querySelectorAll('.day.show-tooltip');
-      all.forEach(a=>a.classList.remove('show-tooltip'));
-      dayEl.classList.toggle('show-tooltip');
-
-      // set selection and populate events panel
       selectedDateStr = ymd;
       populatePanelForDate(ymd);
-      // ensure selected visual
       document.querySelectorAll('.day.selected').forEach(el=>el.classList.remove('selected'));
       dayEl.classList.add('selected');
     });
 
     grid.appendChild(dayEl);
   }
-
-  // If selected date is in current month ensure highlighted (if not, reset)
-  if(selectedDateStr){
-    const sel = document.querySelector(`.day[data-ymd="${selectedDateStr}"]`);
-    if(sel) sel.classList.add('selected');
-    else selectedDateStr = null;
-  }
-
-  // click outside to close any show-tooltip
-  document.body.addEventListener('click', () => {
-    document.querySelectorAll('.day.show-tooltip').forEach(d=>d.classList.remove('show-tooltip'));
-  }, {once:false});
 }
 
-/* -------------------------
-   populate bottom panel for selected date
-   ------------------------- */
 function populatePanelForDate(ymd){
   const panelDate = document.getElementById('panelDate');
   const panelList = document.getElementById('panelList');
@@ -416,14 +292,12 @@ function populatePanelForDate(ymd){
     return;
   }
 
-  // build event list
   panelList.innerHTML = '';
   dayEvents.forEach(ev => {
     const item = document.createElement('div');
     item.className = 'event-item';
     const icon = document.createElement('div');
     icon.className = 'event-icon';
-    // show initials or calendar glyph
     const initials = (ev.PROGRAM || 'Event').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
     icon.textContent = initials;
     const body = document.createElement('div');
@@ -443,43 +317,36 @@ function populatePanelForDate(ymd){
 }
 
 /* -------------------------
-   Navigation + other UI wiring
-   ------------------------- */
-document.getElementById('prevMonth').addEventListener('click', ()=>{
-  currentDate.setMonth(currentDate.getMonth()-1);
-  renderCalendar();
-});
-document.getElementById('nextMonth').addEventListener('click', ()=>{
-  currentDate.setMonth(currentDate.getMonth()+1);
-  renderCalendar();
-});
-document.getElementById('jumpToday').addEventListener('click', ()=>{
-  currentDate = new Date();
-  renderCalendar();
-  // also select today
-  selectedDateStr = toYMD(new Date());
-  populatePanelForDate(selectedDateStr);
-});
+   Month-Year selectors
+--------------------------*/
+function populateMonthYearSelectors(){
+  const monthSel = document.getElementById('monthSelect');
+  const yearSel = document.getElementById('yearSelect');
+  const months = Object.keys(monthMap);
+  monthSel.innerHTML = months.map((m,i)=> `<option value="${i}" ${i===currentDate.getMonth()?'selected':''}>${m}</option>`).join('');
+  const yearRange = [];
+  const currentYear = new Date().getFullYear();
+  for(let y=currentYear-5; y<=currentYear+5; y++) yearRange.push(y);
+  yearSel.innerHTML = yearRange.map(y=> `<option value="${y}" ${y===currentDate.getFullYear()?'selected':''}>${y}</option>`).join('');
 
-document.getElementById('fab').addEventListener('click', ()=>{
-  alert('Add event action (UI only in this demo).');
-});
-
-/* -------------------------
-   Utility: escape HTML to avoid injection
-   ------------------------- */
-function escapeHtml(s){
-  if(!s) return '';
-  return s.replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; });
+  monthSel.addEventListener('change', ()=> {
+    currentDate.setMonth(parseInt(monthSel.value));
+    renderCalendar();
+  });
+  yearSel.addEventListener('change', ()=> {
+    currentDate.setFullYear(parseInt(yearSel.value));
+    renderCalendar();
+  });
 }
 
 /* -------------------------
    Init
-   ------------------------- */
-loadCsvAndParse(); // fetch + parse then renders
-// initial render while loading
-renderCalendar();
+--------------------------*/
+document.getElementById('fab').addEventListener('click', ()=>alert('Add event action (UI only in this demo).'));
+function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
 
+loadCsvAndParse();
+renderCalendar();
 </script>
 </body>
 </html>
