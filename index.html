@@ -3,334 +3,259 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ICANJ Church Calendar 2026 </title>
+<title>ICANJ Church Calendar</title>
 <style>
+  :root {
+    --accent: #2b6cb0;
+    --bg: #f7f8fc;
+    --text: #2d3748;
+    --cell-bg: #fff;
+  }
+
   body {
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    background: #f5f6fa;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 20px;
   }
 
-  .calendar-container {
-    width: 440px;
-    max-width: 95%;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
-
-  .header {
-    background: #1976d2;
-    color: #fff;
-    padding: 16px;
+  header {
     text-align: center;
-    font-size: 1.4rem;
-    font-weight: 600;
+    margin-bottom: 15px;
   }
 
-  .nav {
+  header h1 {
+    color: var(--accent);
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+  }
+
+  .controls {
     display: flex;
     justify-content: center;
-    align-items: center;
-    background: #2196f3;
-    padding: 10px;
     gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
   }
 
-  select, button {
-    border: none;
-    border-radius: 6px;
-    padding: 6px 10px;
+  select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
     font-size: 1rem;
-    background: #fff;
-    color: #333;
-    cursor: pointer;
   }
 
   #calendar {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    gap: 6px;
-    padding: 16px;
-  }
-
-  .day-name {
-    font-weight: 600;
-    color: #1976d2;
-    font-size: 0.9rem;
+    grid-template-columns: repeat(7, 150px);
+    gap: 10px;
+    justify-content: center;
   }
 
   .day {
-    width: 55px;
-    height: 55px;
-    margin: auto;
+    background: var(--cell-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    min-height: 110px;
+    padding: 10px;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
     position: relative;
-    font-size: 0.95rem;
-    color: #333;
-    border-radius: 50%;
   }
 
-  .day.event::after {
-    content: "";
-    position: absolute;
-    bottom: 6px;
-    width: 6px;
-    height: 6px;
-    background: #ff5252;
-    border-radius: 50%;
-  }
-
-  .day.today {
-    background: #1976d2;
-    color: white;
-  }
-
-  .event-list {
-    padding: 16px;
-    border-top: 1px solid #eee;
-    min-height: 100px;
-  }
-
-  .event-title {
+  .header-cell {
     font-weight: bold;
-    color: #1976d2;
+    text-align: center;
+    color: var(--accent);
+    background: none;
+    box-shadow: none;
   }
 
-  .event-item {
-    margin-top: 8px;
+  .date-num {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .event-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+  }
+
+  .event-name {
     font-size: 0.9rem;
-    line-height: 1.3;
+    color: var(--accent);
+    margin-bottom: 4px;
   }
 
-  @media (max-width: 600px) {
-    .calendar-container {
-      width: 95%;
+  @media (max-width: 768px) {
+    #calendar {
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
     }
     .day {
-      width: 42px;
-      height: 42px;
-      font-size: 0.85rem;
+      min-height: 80px;
+      padding: 6px;
     }
+    .date-num {
+      font-size: 0.9rem;
+    }
+  }
+
+  footer {
+    margin-top: 20px;
+    color: #555;
+    font-size: 0.9rem;
   }
 </style>
 </head>
 <body>
-<div class="calendar-container">
-  <div class="header">ICANJ Church Calendar</div>
-
-  <div class="nav">
-    <button id="prevMonth">◀</button>
-    <select id="monthSelect"></select>
-    <select id="yearSelect"></select>
-    <button id="nextMonth">▶</button>
-  </div>
-
+  <header>
+    <h1>ICANJ Church Calendar</h1>
+    <div class="controls">
+      <select id="monthSelect"></select>
+      <select id="yearSelect"></select>
+    </div>
+  </header>
   <div id="calendar"></div>
-  <div class="event-list" id="eventList">
-    <div class="event-title" id="eventTitle">No date selected</div>
-    <div id="eventDetails">Select a date to see events</div>
-  </div>
-</div>
+  <footer id="status">Loading calendar...</footer>
 
 <script>
-const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
 
-let events = [];
-let currentMonth = new Date().getMonth();
-let currentYear = new Date().getFullYear();
-
-// ✅ Robust CSV parser
 async function fetchCsv(url) {
   const res = await fetch(url);
-  const text = await res.text();
-  const rows = text.trim().split(/\r?\n/);
-  const headers = rows[0].split(",").map((h) => h.trim());
-  return rows.slice(1).map((row) => {
-    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((c) =>
-      c.replace(/(^"|"$)/g, "").trim()
-    );
+  if (!res.ok) throw new Error("Failed to fetch CSV");
+  return await res.text();
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g,''));
+  return lines.slice(1).map(line => {
+    const cols = line.split(",").map(c => c.trim().replace(/"/g,''));
     const obj = {};
-    headers.forEach((h, i) => (obj[h] = cols[i]));
+    headers.forEach((h,i)=>obj[h]=cols[i]||'');
     return obj;
   });
 }
 
-// ✅ Fix date parsing (handles “Thursday, January 1, 2026”)
-function parseDate(str) {
-  if (!str) return null;
-  let cleaned = str.replace(/^[A-Za-z]+,\s*/, "").trim(); // remove weekday
-  const d = new Date(cleaned);
-  return isNaN(d) ? null : d;
+function parseDate(text) {
+  if (!text) return null;
+  const match = text.match(/([A-Za-z]+),?\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/);
+  if (!match) return null;
+  const [_, , monthName, day, year] = match;
+  return new Date(`${monthName} ${day}, ${year}`);
 }
 
-function renderCalendar() {
-  const cal = document.getElementById("calendar");
-  cal.innerHTML = "";
+function populateSelectors(events) {
+  const years = [...new Set(events.map(e => {
+    const d = parseDate(e.DATE);
+    return d ? d.getFullYear() : null;
+  }).filter(Boolean))].sort();
 
-  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  daysOfWeek.forEach((d) => {
-    const dn = document.createElement("div");
-    dn.textContent = d;
-    dn.className = "day-name";
-    cal.appendChild(dn);
-  });
-
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const startDay = (firstDay.getDay() + 6) % 7; // Monday start
-  const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-  for (let i = 0; i < startDay; i++) {
-    const empty = document.createElement("div");
-    cal.appendChild(empty);
-  }
-
-  for (let d = 1; d <= totalDays; d++) {
-    const cell = document.createElement("div");
-    cell.className = "day";
-    const today = new Date();
-    if (
-      d === today.getDate() &&
-      currentMonth === today.getMonth() &&
-      currentYear === today.getFullYear()
-    ) {
-      cell.classList.add("today");
-    }
-
-    cell.textContent = d;
-
-    const hasEvent = events.some((ev) => {
-      const evDate = parseDate(ev.DATE);
-      return (
-        evDate &&
-        evDate.getDate() === d &&
-        evDate.getMonth() === currentMonth &&
-        evDate.getFullYear() === currentYear &&
-        ev.PROGRAM
-      );
-    });
-
-    if (hasEvent) cell.classList.add("event");
-
-    cell.addEventListener("click", () => showEventsForDate(d));
-    cal.appendChild(cell);
-  }
-}
-
-function showEventsForDate(day) {
-  const list = document.getElementById("eventDetails");
-  const title = document.getElementById("eventTitle");
-  const dateObj = new Date(currentYear, currentMonth, day);
-  title.textContent = dateObj.toDateString();
-
-  const evs = events.filter((ev) => {
-    const evDate = parseDate(ev.DATE);
-    return (
-      evDate &&
-      evDate.getDate() === day &&
-      evDate.getMonth() === currentMonth &&
-      evDate.getFullYear() === currentYear &&
-      ev.PROGRAM
-    );
-  });
-
-  if (evs.length === 0) {
-    list.innerHTML = "<i>No events planned for this day</i>";
-  } else {
-    list.innerHTML = evs
-      .map(
-        (ev) => `
-      <div class="event-item">
-        <strong>${ev.PROGRAM}</strong><br>
-        ${ev.LOCATION ? "📍 " + ev.LOCATION + "<br>" : ""}
-        ${ev.CONTACT ? "☎ " + ev.CONTACT + "<br>" : ""}
-        ${ev.COMMENTS ? "💬 " + ev.COMMENTS : ""}
-      </div>
-    `
-      )
-      .join("");
-  }
-}
-
-function populateSelectors() {
+  const now = new Date();
   const monthSelect = document.getElementById("monthSelect");
   const yearSelect = document.getElementById("yearSelect");
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+
+  const months = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
   ];
 
-  monthSelect.innerHTML = "";
-  yearSelect.innerHTML = "";
+  monthSelect.innerHTML = months.map((m,i)=>`<option value="${i}" ${i===now.getMonth()?"selected":""}>${m}</option>`).join("");
+  yearSelect.innerHTML = years.map(y=>`<option value="${y}" ${y===now.getFullYear()?"selected":""}>${y}</option>`).join("");
 
-  monthNames.forEach((m, i) => {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.textContent = m;
-    if (i === currentMonth) opt.selected = true;
-    monthSelect.appendChild(opt);
+  monthSelect.addEventListener("change", ()=>buildCalendar(events));
+  yearSelect.addEventListener("change", ()=>buildCalendar(events));
+}
+
+function buildCalendar(events) {
+  const calendar = document.getElementById("calendar");
+  calendar.innerHTML = "";
+
+  const month = parseInt(document.getElementById("monthSelect").value);
+  const year = parseInt(document.getElementById("yearSelect").value);
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month+1, 0).getDate();
+  const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+  // Add header row
+  dayNames.forEach(name => {
+    const cell = document.createElement("div");
+    cell.className = "day header-cell";
+    cell.textContent = name;
+    calendar.appendChild(cell);
   });
 
-  for (let y = 2025; y <= 2030; y++) {
-    const opt = document.createElement("option");
-    opt.value = y;
-    opt.textContent = y;
-    if (y === currentYear) opt.selected = true;
-    yearSelect.appendChild(opt);
+  // Empty slots before the 1st
+  for(let i=0;i<firstDay;i++){
+    const empty = document.createElement("div");
+    empty.className="day";
+    calendar.appendChild(empty);
   }
 
-  monthSelect.addEventListener("change", () => {
-    currentMonth = parseInt(monthSelect.value);
-    renderCalendar();
-  });
+  // Fill dates
+  for(let d=1;d<=totalDays;d++){
+    const cell = document.createElement("div");
+    cell.className="day";
 
-  yearSelect.addEventListener("change", () => {
-    currentYear = parseInt(yearSelect.value);
-    renderCalendar();
-  });
+    const dateSpan = document.createElement("div");
+    dateSpan.className="date-num";
+    dateSpan.textContent = d;
+    cell.appendChild(dateSpan);
 
-  document.getElementById("prevMonth").addEventListener("click", () => {
-    currentMonth--;
-    if (currentMonth < 0) {
-      currentMonth = 11;
-      currentYear--;
+    const currentDateStr = new Date(year, month, d).toDateString();
+
+    const dayEvents = events.filter(e => {
+      const ed = parseDate(e.DATE);
+      return ed && ed.toDateString() === currentDateStr && e.PROGRAM;
+    });
+
+    if(dayEvents.length > 0){
+      const dot = document.createElement("div");
+      dot.className = "event-dot";
+      cell.appendChild(dot);
+
+      dayEvents.forEach(ev=>{
+        const evName = document.createElement("div");
+        evName.className="event-name";
+        evName.textContent = ev.PROGRAM;
+        cell.appendChild(evName);
+      });
     }
-    monthSelect.value = currentMonth;
-    yearSelect.value = currentYear;
-    renderCalendar();
-  });
 
-  document.getElementById("nextMonth").addEventListener("click", () => {
-    currentMonth++;
-    if (currentMonth > 11) {
-      currentMonth = 0;
-      currentYear++;
-    }
-    monthSelect.value = currentMonth;
-    yearSelect.value = currentYear;
-    renderCalendar();
-  });
+    calendar.appendChild(cell);
+  }
+
+  document.getElementById("status").textContent = `Showing: ${year} ${new Date(year, month).toLocaleString("default",{month:"long"})}`;
 }
 
 async function init() {
   try {
-    const data = await fetchCsv(CSV_URL);
-    events = data.filter((e) => e.DATE && e.PROGRAM);
-    console.log(`✅ Loaded ${events.length} events`);
-    populateSelectors();
-    renderCalendar();
+    const csv = await fetchCsv(CSV_URL);
+    const events = parseCsv(csv);
+    if (!events.length) throw new Error("No data found");
+    document.getElementById("status").textContent = `Data loaded successfully! ${events.length} entries found.`;
+    populateSelectors(events);
+    buildCalendar(events);
   } catch (err) {
-    console.error("❌ Error loading calendar data:", err);
-    document.getElementById("calendar").textContent = "Error loading data.";
+    document.getElementById("status").textContent = "Error loading calendar: " + err.message;
+    console.error(err);
   }
 }
 
