@@ -18,13 +18,29 @@
     --accent: #ffd54f;
   }
 
-  html,body{height:100%;margin:0;font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; display:flex; align-items:center; justify-content:center; background:var(--bg);}
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--bg);
+  }
   body{color:#24313a; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
 
   /* Container to mimic phone-style card */
-  .wrap{ width:100%; max-width:720px; margin:auto; box-shadow:0 6px 20px rgba(0,0,0,0.12); border-radius:6px; overflow:hidden; background:var(--card); }
+  .wrap{
+    width:100%;
+    max-width:720px;
+    margin:auto;
+    box-shadow:0 6px 20px rgba(0,0,0,0.12);
+    border-radius:6px;
+    overflow:hidden;
+    background:var(--card);
+  }
 
-  /* Top ICANJ strip */
+  /* Title strip */
   .title-strip{
     background: var(--blue-dark);
     color:white;
@@ -41,21 +57,49 @@
     padding:12px;
   }
 
-  .top-bar{ display:flex; align-items:center; justify-content:center; gap:8px; }
-  .nav-row{ display:flex; align-items:center; justify-content:center; margin-top:8px; color:rgba(255,255,255,0.9); gap:8px; }
-  .nav-arrows{ display:flex; gap:8px; align-items:center; }
-  select{ padding:4px 6px; border-radius:4px; border:none; font-weight:600; }
+  .top-bar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  select{
+    padding:4px 6px;
+    border-radius:4px;
+    border:none;
+    font-weight:600;
+  }
+  button{
+    background:transparent;
+    border:none;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    font-size:1.2rem;
+  }
 
   /* Weekday labels */
-  .weekday-row{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:10px; color:rgba(255,255,255,0.85); font-size:0.78rem; text-align:center; padding:0 6px; }
+  .weekday-row{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+    margin-top:10px;
+    color:rgba(255,255,255,0.85);
+    font-size:0.78rem;
+    text-align:center;
+    padding:0 6px;
+  }
   .weekday{ opacity:0.9; padding:8px 6px; }
 
-  /* Calendar grid area inside blue card */
+  /* Calendar grid */
   .calendar-grid {
     display:grid;
     grid-template-columns: repeat(7, 1fr);
     gap:8px;
     padding:10px;
+    height:420px; /* fixed height to avoid resizing */
+    box-sizing:border-box;
   }
 
   .day {
@@ -114,8 +158,6 @@
   .event-title { font-weight:600; color:#22313a; }
   .event-meta { color:var(--muted); font-size:0.9rem; margin-top:4px; }
 
-  /* Remove tooltip entirely (hover effect discarded) */
-
   /* small screens adjustments */
   @media (max-width:420px) {
     .wrap{ margin:10px; }
@@ -135,9 +177,10 @@
   <!-- TOP BLUE AREA -->
   <div class="top">
     <div class="top-bar">
-      <!-- Month & Year selectors -->
+      <button id="prevMonthBtn">&#8592;</button>
       <select id="monthSelect"></select>
       <select id="yearSelect"></select>
+      <button id="nextMonthBtn">&#8594;</button>
     </div>
 
     <div class="weekday-row" aria-hidden="true">
@@ -316,37 +359,50 @@ function populatePanelForDate(ymd){
   });
 }
 
-/* -------------------------
-   Month-Year selectors
---------------------------*/
+document.getElementById('prevMonthBtn').addEventListener('click', ()=>{
+  currentDate.setMonth(currentDate.getMonth()-1);
+  updateMonthYearSelectors();
+  renderCalendar();
+});
+document.getElementById('nextMonthBtn').addEventListener('click', ()=>{
+  currentDate.setMonth(currentDate.getMonth()+1);
+  updateMonthYearSelectors();
+  renderCalendar();
+});
+
 function populateMonthYearSelectors(){
   const monthSel = document.getElementById('monthSelect');
   const yearSel = document.getElementById('yearSelect');
-  const months = Object.keys(monthMap);
-  monthSel.innerHTML = months.map((m,i)=> `<option value="${i}" ${i===currentDate.getMonth()?'selected':''}>${m}</option>`).join('');
-  const yearRange = [];
-  const currentYear = new Date().getFullYear();
-  for(let y=currentYear-5; y<=currentYear+5; y++) yearRange.push(y);
-  yearSel.innerHTML = yearRange.map(y=> `<option value="${y}" ${y===currentDate.getFullYear()?'selected':''}>${y}</option>`).join('');
+  monthSel.innerHTML = '';
+  yearSel.innerHTML = '';
+  const monthNames = Object.keys(monthMap);
+  monthNames.forEach((m,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = m;
+    if(i === currentDate.getMonth()) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+  const startYear = currentDate.getFullYear()-5;
+  for(let y=startYear; y<=startYear+20; y++){
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if(y === currentDate.getFullYear()) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
 
-  monthSel.addEventListener('change', ()=> {
-    currentDate.setMonth(parseInt(monthSel.value));
-    renderCalendar();
-  });
-  yearSel.addEventListener('change', ()=> {
-    currentDate.setFullYear(parseInt(yearSel.value));
-    renderCalendar();
-  });
+  monthSel.addEventListener('change', ()=>{ currentDate.setMonth(parseInt(monthSel.value)); renderCalendar(); });
+  yearSel.addEventListener('change', ()=>{ currentDate.setFullYear(parseInt(yearSel.value)); renderCalendar(); });
 }
 
-/* -------------------------
-   Init
---------------------------*/
-document.getElementById('fab').addEventListener('click', ()=>alert('Add event action (UI only in this demo).'));
+document.getElementById('fab').addEventListener('click', ()=>{ alert('Add event action (UI only in this demo).'); });
+
 function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
 
 loadCsvAndParse();
 renderCalendar();
 </script>
+
 </body>
 </html>
