@@ -16,8 +16,8 @@
   }
 
   .calendar-container {
-    width: 420px;
-    max-width: 90%;
+    width: 440px;
+    max-width: 95%;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
@@ -67,8 +67,8 @@
   }
 
   .day {
-    width: 50px;
-    height: 50px;
+    width: 55px;
+    height: 55px;
     margin: auto;
     display: flex;
     justify-content: center;
@@ -77,7 +77,6 @@
     font-size: 0.95rem;
     color: #333;
     border-radius: 50%;
-    transition: background 0.2s;
   }
 
   .day.event::after {
@@ -143,37 +142,43 @@
 </div>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
+const CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
+
 let events = [];
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 
+// ✅ Robust CSV parser
 async function fetchCsv(url) {
   const res = await fetch(url);
   const text = await res.text();
   const rows = text.trim().split(/\r?\n/);
-  const headers = rows[0].split(",").map(h => h.trim());
-  return rows.slice(1).map(row => {
-    const cols = row.split(",").map(c => c.trim());
+  const headers = rows[0].split(",").map((h) => h.trim());
+  return rows.slice(1).map((row) => {
+    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((c) =>
+      c.replace(/(^"|"$)/g, "").trim()
+    );
     const obj = {};
-    headers.forEach((h,i) => obj[h] = cols[i]);
+    headers.forEach((h, i) => (obj[h] = cols[i]));
     return obj;
   });
 }
 
+// ✅ Fix date parsing (handles “Thursday, January 1, 2026”)
 function parseDate(str) {
-  const d = new Date(str);
-  if (!isNaN(d)) return d;
-  const match = str.match(/([A-Za-z]+),?\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/);
-  return match ? new Date(`${match[2]} ${match[3]}, ${match[4]}`) : null;
+  if (!str) return null;
+  let cleaned = str.replace(/^[A-Za-z]+,\s*/, "").trim(); // remove weekday
+  const d = new Date(cleaned);
+  return isNaN(d) ? null : d;
 }
 
 function renderCalendar() {
   const cal = document.getElementById("calendar");
   cal.innerHTML = "";
 
-  const daysOfWeek = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  daysOfWeek.forEach(d => {
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  daysOfWeek.forEach((d) => {
     const dn = document.createElement("div");
     dn.textContent = d;
     dn.className = "day-name";
@@ -182,28 +187,38 @@ function renderCalendar() {
 
   const firstDay = new Date(currentYear, currentMonth, 1);
   const startDay = (firstDay.getDay() + 6) % 7; // Monday start
-  const totalDays = new Date(currentYear, currentMonth+1, 0).getDate();
+  const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  for(let i=0; i<startDay; i++) {
+  for (let i = 0; i < startDay; i++) {
     const empty = document.createElement("div");
     cal.appendChild(empty);
   }
 
-  for(let d=1; d<=totalDays; d++) {
+  for (let d = 1; d <= totalDays; d++) {
     const cell = document.createElement("div");
     cell.className = "day";
-    const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    cell.textContent = d;
-
     const today = new Date();
-    if (d === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+    if (
+      d === today.getDate() &&
+      currentMonth === today.getMonth() &&
+      currentYear === today.getFullYear()
+    ) {
       cell.classList.add("today");
     }
 
-    const hasEvent = events.some(ev => {
+    cell.textContent = d;
+
+    const hasEvent = events.some((ev) => {
       const evDate = parseDate(ev.DATE);
-      return evDate && evDate.getDate() === d && evDate.getMonth() === currentMonth && evDate.getFullYear() === currentYear && ev.PROGRAM;
+      return (
+        evDate &&
+        evDate.getDate() === d &&
+        evDate.getMonth() === currentMonth &&
+        evDate.getFullYear() === currentYear &&
+        ev.PROGRAM
+      );
     });
+
     if (hasEvent) cell.classList.add("event");
 
     cell.addEventListener("click", () => showEventsForDate(d));
@@ -217,33 +232,45 @@ function showEventsForDate(day) {
   const dateObj = new Date(currentYear, currentMonth, day);
   title.textContent = dateObj.toDateString();
 
-  const evs = events.filter(ev => {
+  const evs = events.filter((ev) => {
     const evDate = parseDate(ev.DATE);
-    return evDate && evDate.getDate() === day && evDate.getMonth() === currentMonth && evDate.getFullYear() === currentYear && ev.PROGRAM;
+    return (
+      evDate &&
+      evDate.getDate() === day &&
+      evDate.getMonth() === currentMonth &&
+      evDate.getFullYear() === currentYear &&
+      ev.PROGRAM
+    );
   });
 
   if (evs.length === 0) {
     list.innerHTML = "<i>No events planned for this day</i>";
   } else {
-    list.innerHTML = evs.map(ev => `
+    list.innerHTML = evs
+      .map(
+        (ev) => `
       <div class="event-item">
         <strong>${ev.PROGRAM}</strong><br>
         ${ev.LOCATION ? "📍 " + ev.LOCATION + "<br>" : ""}
         ${ev.CONTACT ? "☎ " + ev.CONTACT + "<br>" : ""}
         ${ev.COMMENTS ? "💬 " + ev.COMMENTS : ""}
       </div>
-    `).join("");
+    `
+      )
+      .join("");
   }
 }
 
 function populateSelectors() {
   const monthSelect = document.getElementById("monthSelect");
   const yearSelect = document.getElementById("yearSelect");
-
   const monthNames = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
   ];
+
+  monthSelect.innerHTML = "";
+  yearSelect.innerHTML = "";
 
   monthNames.forEach((m, i) => {
     const opt = document.createElement("option");
@@ -253,7 +280,7 @@ function populateSelectors() {
     monthSelect.appendChild(opt);
   });
 
-  for(let y = 2020; y <= 2030; y++) {
+  for (let y = 2025; y <= 2030; y++) {
     const opt = document.createElement("option");
     opt.value = y;
     opt.textContent = y;
@@ -265,6 +292,7 @@ function populateSelectors() {
     currentMonth = parseInt(monthSelect.value);
     renderCalendar();
   });
+
   yearSelect.addEventListener("change", () => {
     currentYear = parseInt(yearSelect.value);
     renderCalendar();
@@ -272,7 +300,10 @@ function populateSelectors() {
 
   document.getElementById("prevMonth").addEventListener("click", () => {
     currentMonth--;
-    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
     monthSelect.value = currentMonth;
     yearSelect.value = currentYear;
     renderCalendar();
@@ -280,7 +311,10 @@ function populateSelectors() {
 
   document.getElementById("nextMonth").addEventListener("click", () => {
     currentMonth++;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
     monthSelect.value = currentMonth;
     yearSelect.value = currentYear;
     renderCalendar();
@@ -290,12 +324,13 @@ function populateSelectors() {
 async function init() {
   try {
     const data = await fetchCsv(CSV_URL);
-    events = data.filter(e => e.DATE && e.PROGRAM);
+    events = data.filter((e) => e.DATE && e.PROGRAM);
+    console.log(`✅ Loaded ${events.length} events`);
     populateSelectors();
     renderCalendar();
   } catch (err) {
-    document.getElementById("calendar").textContent = "Error loading calendar data.";
-    console.error(err);
+    console.error("❌ Error loading calendar data:", err);
+    document.getElementById("calendar").textContent = "Error loading data.";
   }
 }
 
