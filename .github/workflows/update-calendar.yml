@@ -2,23 +2,30 @@ name: Update Calendar (scheduled)
 
 on:
   schedule:
-    - cron: '0 * * * *'  # ⏰ every hour at minute 0
-  workflow_dispatch: {}    # allow manual run
+    - cron: '0 * * * *'  # every hour
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true  # so push uses the workflow token
 
       - name: Fetch CSV and build index.html
         env:
           CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?gid=0&single=true&output=csv"
         run: |
+          set -e
           python3 - <<'PY'
           import requests, html, sys
           from datetime import datetime, UTC
@@ -27,14 +34,15 @@ jobs:
           try:
               r = requests.get(csv_url, timeout=30)
               r.raise_for_status()
+              print("✅ CSV fetched successfully!")
           except Exception as e:
-              print("Failed fetching CSV:", e)
+              print("❌ Failed fetching CSV:", e)
               sys.exit(1)
 
           text = r.text.strip()
           lines = text.splitlines()
           if not lines:
-              print("Empty CSV")
+              print("❌ Empty CSV")
               sys.exit(1)
 
           headers = [h.strip().strip('"') for h in lines[0].split(',')]
@@ -45,55 +53,50 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>Church Calendar</title>
+            <title>ICANJ Church Calendar</title>
             <style>
-              body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f7f7f8;padding:20px}
-              table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-              th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
-              th{background:#fafafa}
-              .date{white-space:nowrap;width:220px}
+              body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f7f7f8;margin:0;padding:20px;text-align:center;}
+              h1{color:#2b6cb0;}
+              table{margin:auto;width:90%;border-collapse:collapse;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.1);border-radius:10px;overflow:hidden;}
+              th,td{padding:10px 14px;border-bottom:1px solid #eee;text-align:left;}
+              th{background:#eaf1fb;}
+              .date{white-space:nowrap;width:220px;}
+              footer{margin-top:20px;color:#555;}
             </style>
           </head>
           <body>
-            <h1>Church Calendar</h1>
-            <p>Last updated: {updated}</p>
-            <div>
-              <table>
-                <thead><tr>{thead}</tr></thead>
-                <tbody>{tbody}</tbody>
-              </table>
-            </div>
+            <h1>ICANJ Church Calendar</h1>
+            <table>
+              <thead><tr>{thead}</tr></thead>
+              <tbody>{tbody}</tbody>
+            </table>
+            <footer>Last updated: {updated}</footer>
           </body>
           </html>"""
 
           thead = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
-
           tbody_rows = []
           for r in rows:
               r = r + [''] * (len(headers) - len(r))
-              cells = []
-              for i, col in enumerate(r):
-                  cell_class = "date" if i == 0 else ""
-                  cells.append(f"<td class='{cell_class}'>{html.escape(col)}</td>")
-              row_html = "<tr>" + "".join(cells) + "</tr>"
+              row_html = "<tr>" + "".join(f"<td>{html.escape(c)}</td>" for c in r) + "</tr>"
               tbody_rows.append(row_html)
 
           out = html_out.format(
-              updated=html.escape(datetime.now(UTC).isoformat()),
+              updated=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
               thead=thead,
               tbody="".join(tbody_rows)
           )
 
           with open('index.html', 'w', encoding='utf-8') as f:
               f.write(out)
-          print("index.html written")
+          print("✅ index.html written successfully.")
           PY
 
-      - name: Commit & push to gh-pages branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "actions@github.com"
-          git checkout -B gh-pages
-          git add index.html
-          git commit -m "Automated calendar update" || echo "No changes to commit"
-          git push --force origin gh-pages
+      - name: Upload artifact for deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
