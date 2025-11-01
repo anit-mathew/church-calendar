@@ -243,7 +243,10 @@ async function loadCsvAndParse(){
         const parsed = parseSheetDate(obj['DATE'] || obj['DATE ']);
         if(parsed) obj.parsedDate = parsed;
         return obj;
-      }).filter(o => o.parsedDate);
+      })
+      // ✅ NEW: Show only rows where Visibility is "Public"
+      .filter(o => o.parsedDate && (o['VISIBILITY'] || o['VISIBLITY'] || '').trim().toLowerCase() === 'public');
+
       document.getElementById('panelDate').textContent = `${events.length} events loaded`;
       renderCalendar();
     }});
