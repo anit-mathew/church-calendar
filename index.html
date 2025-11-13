@@ -198,9 +198,11 @@ button{
 
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
+
 let events = [];
 let currentDate = new Date();
 let selectedDateStr = null;
+
 const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
 function pad(n){ return String(n).padStart(2,'0'); }
@@ -208,8 +210,25 @@ function toYMD_local(year, month, day){ return `${year}-${pad(month)}-${pad(day)
 
 function parseSheetDate(cell){
   if(!cell) return null;
-  const d = new Date(cell);
+  let s = cell.trim();
+
+  // Remove day-of-week
+  const commaIndex = s.indexOf(',');
+  if(commaIndex > 0){
+    s = s.slice(commaIndex + 1).trim();
+  }
+
+  const d = new Date(s);
   if(!isNaN(d)) return toYMD_local(d.getFullYear(), d.getMonth()+1, d.getDate());
+
+  // fallback manual parsing
+  const parts = s.split(' ');
+  if(parts.length >= 3){
+    const month = monthMap[parts[0]];
+    const day = parseInt(parts[1].replace(/\D/g,''),10);
+    const year = parseInt(parts[2],10);
+    if(month && day && year) return toYMD_local(year, month, day);
+  }
   return null;
 }
 
@@ -217,19 +236,23 @@ async function loadCsvAndParse(){
   try{
     const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(CSV_URL)}`);
     const text = await res.json();
+
     Papa.parse(text.contents, { 
       skipEmptyLines:true,
       header:true,
       complete: function(results){
         events = results.data
           .filter(e => (e.VISIBILITY||'public').toLowerCase() === 'public')
-          .map(e => ({
-            parsedDate: parseSheetDate(e.DATE),
-            PROGRAM: e.PROGRAM || '',
-            LOCATION: e.LOCATION || '',
-            CONTACT: e.CONTACT || '',
-            COMMENTS: e.COMMENTS || ''
-          }))
+          .map(e => {
+            const parsedDate = parseSheetDate(e.DATE);
+            return {
+              parsedDate,
+              PROGRAM: e.PROGRAM || '',
+              LOCATION: e.LOCATION || '',
+              CONTACT: e.CONTACT || '',
+              COMMENTS: e.COMMENTS || ''
+            };
+          })
           .filter(e => e.parsedDate);
         renderCalendar();
       }
