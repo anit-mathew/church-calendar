@@ -28,7 +28,7 @@ jobs:
           set -e
           python3 - <<'PY'
           import requests, html, sys
-          from datetime import datetime, UTC
+          from datetime import datetime, timezone
 
           csv_url = "${{ env.CSV_URL }}"
           try:
@@ -48,6 +48,7 @@ jobs:
           headers = [h.strip().strip('"') for h in lines[0].split(',')]
           rows = [[c.strip().strip('"') for c in line.split(',')] for line in lines[1:]]
 
+          # Escape curly braces in CSS for .format()
           html_out = """<!doctype html>
           <html lang="en">
           <head>
@@ -55,13 +56,13 @@ jobs:
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <title>ICANJ Church Calendar</title>
             <style>
-              body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f7f7f8;margin:0;padding:20px;text-align:center;}
-              h1{color:#2b6cb0;}
-              table{margin:auto;width:90%;border-collapse:collapse;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.1);border-radius:10px;overflow:hidden;}
-              th,td{padding:10px 14px;border-bottom:1px solid #eee;text-align:left;}
-              th{background:#eaf1fb;}
-              .date{white-space:nowrap;width:220px;}
-              footer{margin-top:20px;color:#555;}
+              body{{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f7f7f8;margin:0;padding:20px;text-align:center;}}
+              h1{{color:#2b6cb0;}}
+              table{{margin:auto;width:90%;border-collapse:collapse;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.1);border-radius:10px;overflow:hidden;}}
+              th,td{{padding:10px 14px;border-bottom:1px solid #eee;text-align:left;}}
+              th{{background:#eaf1fb;}}
+              .date{{white-space:nowrap;width:220px;}}
+              footer{{margin-top:20px;color:#555;}}
             </style>
           </head>
           <body>
@@ -82,7 +83,7 @@ jobs:
               tbody_rows.append(row_html)
 
           out = html_out.format(
-              updated=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+              updated=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
               thead=thead,
               tbody="".join(tbody_rows)
           )
