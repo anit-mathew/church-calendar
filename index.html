@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>ICANJ Church Calendar</title>
 
-<!-- Load PapaParse properly -->
+<!-- PapaParse for CSV parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
@@ -93,7 +93,7 @@
     grid-template-columns: repeat(7, 1fr);
     gap:8px;
     padding:10px;
-    height:420px;
+    height:420px; /* fixed height to avoid resizing */
     box-sizing:border-box;
   }
 
@@ -199,29 +199,31 @@
 
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?output=csv";
-
 let events = [];
 let currentDate = new Date();
 let selectedDateStr = null;
+const monthMap = { "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12 };
 
 function pad(n){ return String(n).padStart(2,'0'); }
-function toYMD_local(year, month, day){ return `${year}-${pad(month)}-${pad(day)}`; }
-function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
-
+function toYMD(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function parseSheetDate(cell){
   if(!cell) return null;
-  const s = cell.toString().trim();
-  const re = /([A-Za-z]+),?\s*([A-Za-z]+)\s+(\d{1,2}),?\s*(\d{4})/;
-  const m = s.match(re);
-  if(m){
-    const monthNames = { january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12 };
-    const mon = monthNames[m[2].toLowerCase()];
-    const day = parseInt(m[3],10);
-    const year = parseInt(m[4],10);
-    if(mon && day && year) return toYMD_local(year, mon, day);
+  let s = cell.trim();
+  const parts = s.split(',');
+  if(parts.length>1){
+    const datePart = parts.slice(1).join(',').trim();
+    const cleaned = datePart.replace(/,/g,'').trim();
+    const bits = cleaned.split(/\s+/);
+    if(bits.length>=3){
+      const month = monthMap[bits[0]];
+      const day = parseInt(bits[1].replace(/\D/g,''),10);
+      const year = parseInt(bits[2],10);
+      if(month && day && year) return `${year}-${pad(month)}-${pad(day)}`;
+    }
+  } else {
+    const d = new Date(s);
+    if(!isNaN(d)) return toYMD(d);
   }
-  const d = new Date(s);
-  if(!isNaN(d)) return toYMD_local(d.getFullYear(), d.getMonth()+1, d.getDate());
   return null;
 }
 
@@ -229,81 +231,99 @@ async function loadCsvAndParse(){
   try{
     const res = await fetch(CSV_URL);
     const text = await res.text();
-    Papa.parse(text, {
-      skipEmptyLines:true,
-      complete:function(results){
-        const rows = results.data;
-        const fields = results.meta && results.meta.fields ? results.meta.fields.map(f=>f.trim()) : null;
-        let parsedRows = [];
-        if(fields && typeof rows[0] === 'object' && !Array.isArray(rows[0])){
-          parsedRows = rows.map(r => {
-            const obj = {};
-            Object.keys(r).forEach(k=>{ obj[k.trim().toUpperCase()] = (r[k]||'').toString().trim(); });
-            return obj;
-          });
-        } else {
-          const arrRows = results.data;
-          if(arrRows.length===0){ parsedRows=[]; }
-          else{
-            const header = arrRows[0].map(h => (h||'').toString().trim().toUpperCase());
-            parsedRows = arrRows.slice(1).map(r=>{
-              const obj={};
-              header.forEach((h,i)=> obj[h] = (r[i]||'').toString().trim());
-              return obj;
-            });
-          }
-        }
-
-        const sample = parsedRows[0] || {};
-        const keys = Object.keys(sample);
-        function findKeyContaining(term){ const t = term.toUpperCase(); return keys.find(k=>k.toUpperCase().replace(/\s+/g,'').includes(t)) || null; }
-        const keyDate = findKeyContaining('DATE') || 'DATE';
-        const keyProgram = findKeyContaining('PROGRAM') || findKeyContaining('EVENT') || 'PROGRAM';
-        const keyLocation = findKeyContaining('LOCATION') || 'LOCATION';
-        const keyContact = findKeyContaining('CONTACT') || 'CONTACT';
-        const keyComments = findKeyContaining('COMMENT') || 'COMMENTS' || 'COMMENT';
-        const keyVisibility = findKeyContaining('VISIBILITY') || findKeyContaining('VISIBLE') || 'VISIBILITY';
-
-        const allEvents=[];
-        parsedRows.forEach(r=>{
-          const dateCell = r[keyDate] || r['DATE'] || '';
-          const parsedDate = parseSheetDate(dateCell);
-          if(!parsedDate) return;
-          const progs = ((r[keyProgram]||'')+'').split('|').map(x=>x.trim()).filter(Boolean);
-          const locs = ((r[keyLocation]||'')+'').split('|').map(x=>x.trim());
-          const conts = ((r[keyContact]||'')+'').split('|').map(x=>x.trim());
-          const comms = ((r[keyComments]||'')+'').split('|').map(x=>x.trim());
-          const viss = ((r[keyVisibility]||'')+'').split('|').map(x=>x.trim().toLowerCase());
-          const count = Math.max(progs.length, locs.length, conts.length, comms.length, viss.length,1);
-          for(let i=0;i<count;i++){
-            allEvents.push({
-              parsedDate,
-              PROGRAM: progs[i]||progs[0]||'',
-              LOCATION: locs[i]||locs[0]||'',
-              CONTACT: conts[i]||conts[0]||'',
-              COMMENTS: comms[i]||comms[0]||'',
-              VISIBILITY: (viss[i]||viss[0]||'public').toLowerCase()
-            });
-          }
-        });
-
-        const grouped={};
-        allEvents.forEach(ev=>{
-          if((ev.VISIBILITY||'').toLowerCase()!=='public') return;
-          const d = ev.parsedDate;
-          if(!grouped[d]) grouped[d]=[];
-          grouped[d].push(ev);
-        });
-
-        events = Object.keys(grouped).sort().map(dateKey=>({ date: dateKey, items: grouped[dateKey] }));
-        renderCalendar();
-      }
-    });
-  } catch(err){ console.error('CSV load error',err); }
+    Papa.parse(text, { skipEmptyLines:true, complete: function(results){
+      const data = results.data;
+      let headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toString().toUpperCase().includes("DATE")));
+      if(headerRowIndex < 0) headerRowIndex = 0;
+      const rawHeaders = data[headerRowIndex].map(h => (h||'').toString().trim().toUpperCase());
+      const rows = data.slice(headerRowIndex+1);
+      events = rows.map(row=>{
+        const obj = {};
+        rawHeaders.forEach((h,i)=>{ obj[h] = (row[i]||'').toString().trim(); });
+        const parsed = parseSheetDate(obj['DATE'] || obj['DATE ']);
+        if(parsed) obj.parsedDate = parsed;
+        return obj;
+      }).filter(o => o.parsedDate);
+      document.getElementById('panelDate').textContent = `${events.length} events loaded`;
+      renderCalendar();
+    }});
+  } catch(err){ console.error(err); document.getElementById('panelList').innerHTML = '<div class="no-events">Error loading sheet.</div>'; }
 }
 
-// Keep the rest of your calendar JS as before (renderCalendar, populatePanelForDate, month/year selectors etc.)
+function renderCalendar(){
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const weekdayOfFirst = (firstOfMonth.getDay() + 6) % 7;
+  const totalDays = new Date(year, month+1, 0).getDate();
+
+  for(let i=0;i<weekdayOfFirst;i++){
+    const empty = document.createElement('div'); empty.className = 'day disabled'; grid.appendChild(empty);
+  }
+
+  for(let d=1; d<=totalDays; d++){
+    const dt = new Date(year, month, d);
+    const ymd = toYMD(dt);
+    const dayEl = document.createElement('div'); dayEl.className = 'day'; dayEl.dataset.ymd = ymd;
+    const dot = document.createElement('div'); dot.className = 'dot'; dot.textContent = d; dayEl.appendChild(dot);
+
+    const dayEvents = events.filter(e => e.parsedDate === ymd && e.PROGRAM);
+    if(dayEvents.length>0){
+      const evDot = document.createElement('div'); evDot.className = 'event-dot'; dayEl.appendChild(evDot);
+    }
+
+    if(selectedDateStr === ymd) dayEl.classList.add('selected');
+
+    dayEl.addEventListener('click', ()=>{ selectedDateStr = ymd; populatePanelForDate(ymd); document.querySelectorAll('.day.selected').forEach(el=>el.classList.remove('selected')); dayEl.classList.add('selected'); });
+    grid.appendChild(dayEl);
+  }
+}
+
+function populatePanelForDate(ymd){
+  const panelDate = document.getElementById('panelDate');
+  const panelList = document.getElementById('panelList');
+  const d = new Date(ymd);
+  const readable = d.toLocaleString('default',{day:'numeric', month:'long', year:'numeric'});
+  panelDate.textContent = readable;
+  const dayEvents = events.filter(e => e.parsedDate === ymd);
+  if(dayEvents.length === 0){ panelList.innerHTML = `<div class="no-events">No events planned for today</div>`; return; }
+  panelList.innerHTML = '';
+  dayEvents.forEach(ev=>{
+    const item = document.createElement('div'); item.className = 'event-item';
+    const icon = document.createElement('div'); icon.className = 'event-icon';
+    const initials = (ev.PROGRAM || 'Event').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase(); icon.textContent = initials;
+    const body = document.createElement('div'); body.className = 'event-body';
+    const title = document.createElement('div'); title.className = 'event-title'; title.textContent = ev.PROGRAM || 'Untitled event';
+    const meta = document.createElement('div'); meta.className = 'event-meta';
+    meta.innerHTML = (ev.LOCATION?`📍 ${escapeHtml(ev.LOCATION)} `:'') + (ev.CONTACT?` • ☎ ${escapeHtml(ev.CONTACT)}`:'') + (ev.COMMENTS?`<div style="margin-top:6px;color:var(--muted)">${escapeHtml(ev.COMMENTS)}</div>`:'');
+    body.appendChild(title); body.appendChild(meta); item.appendChild(icon); item.appendChild(body); panelList.appendChild(item);
+  });
+}
+
+function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+
+function initMonthYearSelectors(){
+  const monthSel = document.getElementById('monthSelect');
+  const yearSel = document.getElementById('yearSelect');
+  const monthNames = Object.keys(monthMap); monthNames.forEach((m,i)=>{ const opt = document.createElement('option'); opt.value=i; opt.textContent=m; monthSel.appendChild(opt); });
+  const startYear = currentDate.getFullYear()-5; for(let y=startYear;y<=startYear+20;y++){ const opt=document.createElement('option'); opt.value=y; opt.textContent=y; if(y===currentDate.getFullYear()) opt.selected=true; yearSel.appendChild(opt);}
+  monthSel.value = currentDate.getMonth(); yearSel.value = currentDate.getFullYear();
+  monthSel.addEventListener('change', ()=>{ currentDate.setMonth(parseInt(monthSel.value)); renderCalendar(); });
+  yearSel.addEventListener('change', ()=>{ currentDate.setFullYear(parseInt(yearSel.value)); renderCalendar(); });
+}
+
+function updateMonthYearSelectors(){ document.getElementById('monthSelect').value=currentDate.getMonth(); document.getElementById('yearSelect').value=currentDate.getFullYear(); }
+
+document.getElementById('prevMonthBtn').addEventListener('click', ()=>{ currentDate.setMonth(currentDate.getMonth()-1); updateMonthYearSelectors(); renderCalendar(); });
+document.getElementById('nextMonthBtn').addEventListener('click', ()=>{ currentDate.setMonth(currentDate.getMonth()+1); updateMonthYearSelectors(); renderCalendar(); });
+document.getElementById('fab').addEventListener('click', ()=>{ alert('Add event action (UI only in this demo).'); });
+
+loadCsvAndParse();
+initMonthYearSelectors();
+renderCalendar();
 </script>
-<script src="your_calendar_logic.js"></script> <!-- include the rest of your JS logic here -->
+
 </body>
 </html>
