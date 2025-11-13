@@ -133,14 +133,27 @@ function renderCalendar(){
 
   for(let i=0;i<weekdayOfFirst;i++){ const empty = document.createElement('div'); empty.className = 'day disabled'; grid.appendChild(empty); }
 
+ 
   for(let d=1; d<=totalDays; d++){
     const dt = new Date(year, month, d);
     const ymd = toYMD(dt);
-    const dayEl = document.createElement('div'); dayEl.className = 'day'; dayEl.dataset.ymd = ymd;
-    const dot = document.createElement('div'); dot.className = 'dot'; dot.textContent = d; dayEl.appendChild(dot);
+    const dayEl = document.createElement('div'); 
+    dayEl.className = 'day'; 
+    dayEl.dataset.ymd = ymd;
+    const dot = document.createElement('div'); 
+    dot.className = 'dot'; 
+    dot.textContent = d; 
+    dayEl.appendChild(dot);
 
+    // Only add event dots if there are events
     const dayEvents = events.filter(e => e.parsedDate === ymd && (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes('public')));
-    dayEvents.forEach(()=> { const evDot = document.createElement('div'); evDot.className = 'event-dot'; dayEl.appendChild(evDot); });
+    if(dayEvents.length > 0){
+        dayEvents.forEach(()=> { 
+            const evDot = document.createElement('div'); 
+            evDot.className = 'event-dot'; 
+            dayEl.appendChild(evDot); 
+        });
+    }
 
     if(selectedDateStr === ymd) dayEl.classList.add('selected');
 
@@ -151,7 +164,7 @@ function renderCalendar(){
       dayEl.classList.add('selected'); 
     });
     grid.appendChild(dayEl);
-  }
+}
 }
 
 // Populate panel
