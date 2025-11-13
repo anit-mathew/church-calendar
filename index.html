@@ -85,6 +85,13 @@ let selectedDateStr = null;
 function pad(n){ return String(n).padStart(2,'0'); }
 function toYMD(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 
+// Parse YYYY-MM-DD as LOCAL date to avoid timezone issues
+function parseYMDLocal(s){
+  if(!s) return null;
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
 // Escape HTML
 function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
@@ -103,8 +110,8 @@ async function loadCsvAndParse(){
       events = rows.map(row=>{
         const obj = {};
         rawHeaders.forEach((h,i)=>{ obj[h] = (row[i]||'').toString().trim(); });
-        // Use ISO date directly
-        if(obj['DATE']) obj.parsedDate = obj['DATE'];
+        // Use ISO date directly but parse as LOCAL date
+        if(obj['DATE']) obj.parsedDate = toYMD(parseYMDLocal(obj['DATE']));
         return obj;
       }).filter(o => o.parsedDate);
 
@@ -151,7 +158,7 @@ function renderCalendar(){
 function populatePanelForDate(ymd){
   const panelDate = document.getElementById('panelDate');
   const panelList = document.getElementById('panelList');
-  const d = new Date(ymd);
+  const d = parseYMDLocal(ymd);
   const readable = d.toLocaleString('default',{day:'numeric', month:'long', year:'numeric'});
   panelDate.textContent = readable;
 
