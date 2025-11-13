@@ -9,156 +9,155 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-  :root{
-    --blue: #2879b8;
-    --blue-dark: #1f6399;
-    --bg: #efefef;
-    --card: #ffffff;
-    --muted: #9aa6b2;
-    --accent: #ffd54f;
-  }
+:root{
+  --blue: #2879b8;
+  --blue-dark: #1f6399;
+  --bg: #efefef;
+  --card: #ffffff;
+  --muted: #9aa6b2;
+  --accent: #ffd54f;
+}
 
-  html,body{
-    height:100%;
-    margin:0;
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:var(--bg);
-  }
-  body{color:#24313a; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+html,body{
+  height:100%;
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+}
+body{color:#24313a; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
 
-  .wrap{
-    width:100%;
-    max-width:720px;
-    margin:auto;
-    box-shadow:0 6px 20px rgba(0,0,0,0.12);
-    border-radius:6px;
-    overflow:hidden;
-    background:var(--card);
-  }
+.wrap{
+  width:100%;
+  max-width:720px;
+  margin:auto;
+  box-shadow:0 6px 20px rgba(0,0,0,0.12);
+  border-radius:6px;
+  overflow:hidden;
+  background:var(--card);
+}
 
-  .title-strip{
-    background: var(--blue-dark);
-    color:white;
-    font-weight:600;
-    font-size:1.25rem;
-    text-align:center;
-    padding:12px;
-  }
+.title-strip{
+  background: var(--blue-dark);
+  color:white;
+  font-weight:600;
+  font-size:1.25rem;
+  text-align:center;
+  padding:12px;
+}
 
-  .top {
-    background: linear-gradient(180deg,var(--blue),var(--blue-dark));
-    color:white;
-    padding:12px;
-  }
+.top {
+  background: linear-gradient(180deg,var(--blue),var(--blue-dark));
+  color:white;
+  padding:12px;
+}
 
-  .top-bar{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:12px;
-    margin-bottom:10px;
-  }
-  select{
-    padding:4px 6px;
-    border-radius:4px;
-    border:none;
-    font-weight:600;
-  }
-  button{
-    background:transparent;
-    border:none;
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
-    font-size:1.2rem;
-  }
+.top-bar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+select{
+  padding:4px 6px;
+  border-radius:4px;
+  border:none;
+  font-weight:600;
+}
+button{
+  background:transparent;
+  border:none;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  font-size:1.2rem;
+}
 
-  .weekday-row{
-    display:grid;
-    grid-template-columns:repeat(7,1fr);
-    gap:6px;
-    margin-top:10px;
-    color:rgba(255,255,255,0.85);
-    font-size:0.78rem;
-    text-align:center;
-    padding:0 6px;
-  }
-  .weekday{ opacity:0.9; padding:8px 6px; }
+.weekday-row{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+  margin-top:10px;
+  color:rgba(255,255,255,0.85);
+  font-size:0.78rem;
+  text-align:center;
+  padding:0 6px;
+}
+.weekday{ opacity:0.9; padding:8px 6px; }
 
-  .calendar-grid {
-    display:grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap:8px;
-    padding:10px;
-    height:420px; /* fixed height to avoid resizing */
-    box-sizing:border-box;
-  }
+.calendar-grid {
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:8px;
+  padding:10px;
+  height:420px;
+  box-sizing:border-box;
+}
 
-  .day {
-    background: transparent;
-    min-height:50px;
-    border-radius:6px;
-    color:rgba(255,255,255,0.95);
-    position:relative;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding-top:6px;
-    font-size:0.95rem;
-    cursor:pointer;
-  }
+.day {
+  background: transparent;
+  min-height:50px;
+  border-radius:6px;
+  color:rgba(255,255,255,0.95);
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding-top:6px;
+  font-size:0.95rem;
+  cursor:pointer;
+}
+.day.disabled{ opacity:0.25; cursor:default; }
 
-  .day.disabled{ opacity:0.25; cursor:default; }
+.day .dot {
+  width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background: rgba(255,255,255,0.12);
+  transition: all .12s ease;
+  font-weight:600;
+}
+.day.selected .dot {
+  background: rgba(255,255,255,0.18);
+  box-shadow: 0 0 0 10px rgba(255,255,255,0.03) inset;
+}
 
-  .day .dot {
-    width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    background: rgba(255,255,255,0.12);
-    transition: all .12s ease;
-    font-weight:600;
-  }
-  .day.selected .dot {
-    background: rgba(255,255,255,0.18);
-    box-shadow: 0 0 0 10px rgba(255,255,255,0.03) inset;
-  }
+.event-dot {
+  width:8px;height:8px;border-radius:50%;background:var(--accent); margin-top:6px; box-shadow:0 1px 0 rgba(0,0,0,0.08);
+}
 
-  .event-dot {
-    width:8px;height:8px;border-radius:50%;background:var(--accent); margin-top:6px; box-shadow:0 1px 0 rgba(0,0,0,0.08);
-  }
+.fab {
+  position:absolute; right:18px; bottom:96px; width:52px; height:52px; border-radius:50%;
+  background:#222; color:white; display:grid; place-items:center; box-shadow:0 8px 18px rgba(0,0,0,0.25); z-index:60; cursor:pointer;
+}
 
-  .fab {
-    position:absolute; right:18px; bottom:96px; width:52px; height:52px; border-radius:50%;
-    background:#222; color:white; display:grid; place-items:center; box-shadow:0 8px 18px rgba(0,0,0,0.25); z-index:60; cursor:pointer;
-  }
+.events-panel {
+  background:var(--card);
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
+  padding:12px 14px;
+  max-height:320px;
+  overflow:auto;
+}
+.panel-date { font-weight:600; margin-bottom:6px; color:#22313a; }
+.no-events { text-align:center; color:var(--muted); padding:22px 6px; font-style:italic; }
 
-  .events-panel {
-    background:var(--card);
-    border-top-left-radius:10px;
-    border-top-right-radius:10px;
-    padding:12px 14px;
-    max-height:320px;
-    overflow:auto;
-  }
-  .panel-date { font-weight:600; margin-bottom:6px; color:#22313a; }
-  .no-events { text-align:center; color:var(--muted); padding:22px 6px; font-style:italic; }
+.event-item {
+  display:flex; gap:10px; align-items:flex-start; padding:12px 6px; border-bottom:1px solid #f0f3f5;
+}
+.event-icon { width:44px; height:44px; border-radius:8px; background:var(--blue); color:white; display:grid; place-items:center; font-weight:700; font-size:1rem; margin-top:2px; }
+.event-body { flex:1; }
+.event-title { font-weight:600; color:#22313a; }
+.event-meta { color:var(--muted); font-size:0.9rem; margin-top:4px; }
 
-  .event-item {
-    display:flex; gap:10px; align-items:flex-start; padding:12px 6px; border-bottom:1px solid #f0f3f5;
-  }
-  .event-icon { width:44px; height:44px; border-radius:8px; background:var(--blue); color:white; display:grid; place-items:center; font-weight:700; font-size:1rem; margin-top:2px; }
-  .event-body { flex:1; }
-  .event-title { font-weight:600; color:#22313a; }
-  .event-meta { color:var(--muted); font-size:0.9rem; margin-top:4px; }
-
-  @media (max-width:420px) {
-    .wrap{ margin:10px; }
-    .fab{ right:14px; bottom:120px; }
-    .calendar-grid{ padding:8px; gap:6px; }
-    .weekday-row{ padding:0 8px; }
-  }
+@media (max-width:420px) {
+  .wrap{ margin:10px; }
+  .fab{ right:14px; bottom:120px; }
+  .calendar-grid{ padding:8px; gap:6px; }
+  .weekday-row{ padding:0 8px; }
+}
 </style>
 </head>
 <body>
@@ -209,68 +208,32 @@ function toYMD_local(year, month, day){ return `${year}-${pad(month)}-${pad(day)
 
 function parseSheetDate(cell){
   if(!cell) return null;
-  let s = cell.trim();
-  const parts = s.split(',');
-  if(parts.length>1){
-    const datePart = parts.slice(1).join(',').trim();
-    const cleaned = datePart.replace(/,/g,'').trim();
-    const bits = cleaned.split(/\s+/);
-    if(bits.length>=3){
-      const month = monthMap[bits[0]];
-      const day = parseInt(bits[1].replace(/\D/g,''),10);
-      const year = parseInt(bits[2],10);
-      if(month && day && year) return toYMD_local(year,month,day);
-    }
-  } else {
-    const d = new Date(s);
-    if(!isNaN(d)) return toYMD_local(d.getFullYear(), d.getMonth()+1, d.getDate());
-  }
+  const d = new Date(cell);
+  if(!isNaN(d)) return toYMD_local(d.getFullYear(), d.getMonth()+1, d.getDate());
   return null;
 }
 
 async function loadCsvAndParse(){
   try{
-    const res = await fetch(CSV_URL);
-    const text = await res.text();
-    Papa.parse(text, { skipEmptyLines:true, complete: function(results){
-      const data = results.data;
-      let headerRowIndex = data.findIndex(r => r.some(cell => (cell||'').toString().toUpperCase().includes("DATE")));
-      if(headerRowIndex < 0) headerRowIndex = 0;
-      const rawHeaders = data[headerRowIndex].map(h => (h||'').toString().trim().toUpperCase());
-      const rows = data.slice(headerRowIndex+1);
-
-      let parsedEvents = [];
-
-      rows.forEach(row=>{
-        const obj = {};
-        rawHeaders.forEach((h,i)=>{ obj[h] = (row[i]||'').toString().trim(); });
-        const parsedDate = parseSheetDate(obj['DATE'] || obj['DATE ']);
-        if(!parsedDate) return;
-
-        // Split multiple entries by "|"
-        const programs = (obj['PROGRAM'] || '').split('|').map(s=>s.trim()).filter(Boolean);
-        const locations = (obj['LOCATION'] || '').split('|').map(s=>s.trim());
-        const contacts = (obj['CONTACT'] || '').split('|').map(s=>s.trim());
-        const comments = (obj['COMMENTS'] || '').split('|').map(s=>s.trim());
-        const visibilities = (obj['VISIBILITY'] || '').split('|').map(s=>s.trim().toLowerCase());
-
-        programs.forEach((prog, i)=>{
-          const visibility = visibilities[i] || visibilities[0] || 'public';
-          if(visibility === 'public'){
-            parsedEvents.push({
-              parsedDate: parsedDate,
-              PROGRAM: prog,
-              LOCATION: locations[i] || locations[0] || '',
-              CONTACT: contacts[i] || contacts[0] || '',
-              COMMENTS: comments[i] || comments[0] || ''
-            });
-          }
-        });
-      });
-
-      events = parsedEvents;
-      renderCalendar();
-    }});
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(CSV_URL)}`);
+    const text = await res.json();
+    Papa.parse(text.contents, { 
+      skipEmptyLines:true,
+      header:true,
+      complete: function(results){
+        events = results.data
+          .filter(e => (e.VISIBILITY||'public').toLowerCase() === 'public')
+          .map(e => ({
+            parsedDate: parseSheetDate(e.DATE),
+            PROGRAM: e.PROGRAM || '',
+            LOCATION: e.LOCATION || '',
+            CONTACT: e.CONTACT || '',
+            COMMENTS: e.COMMENTS || ''
+          }))
+          .filter(e => e.parsedDate);
+        renderCalendar();
+      }
+    });
   } catch(err){ console.error(err); }
 }
 
