@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ICANJ Church Calendar  11/13</title>
+<title>ICANJ Church Calendar</title>
 
+<!-- PapaParse for CSV parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
@@ -119,7 +120,6 @@
     display:flex;align-items:center;justify-content:center;
     background: rgba(255,255,255,0.12);
     font-weight:600;
-    position:relative;
   }
 
   .day.selected .dot {
@@ -130,7 +130,7 @@
   .event-dot {
     width:8px;height:8px;border-radius:50%;
     background:var(--accent);
-    margin-top:2px;
+    margin-top:6px;
   }
 
   .fab {
@@ -209,47 +209,66 @@ function parseYMDLocal(s){
 }
 function pad(n){ return String(n).padStart(2,'0'); }
 function toYMD(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
-function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function escapeHtml(s){
+  if(!s) return '';
+  return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
 
 async function loadCsvAndParse(){
   try{
     const res = await fetch(CSV_URL);
     const text = await res.text();
-    Papa.parse(text,{ skipEmptyLines:true, complete: results=>{
-      const data = results.data;
-      let headerRowIndex = data.findIndex(r=>r.some(c=>(c||'').toUpperCase().includes('DATE')));
-      if(headerRowIndex<0) headerRowIndex=0;
-      const headers = data[headerRowIndex].map(h=>(h||'').trim().toUpperCase());
-      const rows = data.slice(headerRowIndex+1);
 
-      events = rows.map(r=>{
-        const obj = {};
-        headers.forEach((h,i)=>obj[h] = (r[i]||'').trim());
-        if(obj['DATE'] && /^\d{4}-\d{2}-\d{2}$/.test(obj['DATE'])) obj.parsedDate=obj['DATE'];
-        return obj;
-      }).filter(o=>o.parsedDate);
-      renderCalendar();
-    }});
-  } catch(e){ console.error(e); }
+    Papa.parse(text, {
+      skipEmptyLines:true,
+      complete: results => {
+        const data = results.data;
+
+        let headerRowIndex = data.findIndex(r => r.some(cell =>
+          (cell||"").toString().toUpperCase().includes("DATE")
+        ));
+        if(headerRowIndex < 0) headerRowIndex = 0;
+
+        const headers = data[headerRowIndex].map(h => (h||"").trim().toUpperCase());
+        const rows = data.slice(headerRowIndex+1);
+
+        events = rows.map(row => {
+          const obj = {};
+          headers.forEach((h,i)=>{ obj[h] = (row[i]||"").trim(); });
+          if(obj["DATE"] && /^\d{4}-\d{2}-\d{2}$/.test(obj["DATE"])) {
+            obj.parsedDate = obj["DATE"];
+          }
+          return obj;
+        }).filter(o => o.parsedDate);
+
+        renderCalendar();
+      }
+    });
+
+  } catch(err){
+    console.error(err);
+  }
 }
 
 function renderCalendar(){
   const grid = document.getElementById("calendarGrid");
-  grid.innerHTML="";
+  grid.innerHTML = "";
+
   const y = currentDate.getFullYear();
   const m = currentDate.getMonth();
-  const first = new Date(y,m,1);
-  const wd = (first.getDay()+6)%7;
-  const total = new Date(y,m+1,0).getDate();
+  const first = new Date(y, m, 1);
+  const wd = (first.getDay() + 6) % 7;
+  const total = new Date(y, m+1, 0).getDate();
 
   for(let i=0;i<wd;i++){
-    const e=document.createElement("div");
+    const e = document.createElement("div");
     e.className="day disabled";
     grid.appendChild(e);
   }
 
   for(let d=1; d<=total; d++){
-    const dt = new Date(y,m,d);
+    const dt = new Date(y, m, d);
     const ymd = toYMD(dt);
 
     const dayEl = document.createElement("div");
@@ -258,26 +277,26 @@ function renderCalendar(){
 
     const dot = document.createElement("div");
     dot.className="dot";
-    dot.textContent=d;
+    dot.textContent = d;
     dayEl.appendChild(dot);
 
-    const dayEvents = events.filter(e=>
-      e.parsedDate===ymd &&
+    // FIX: Only real events create yellow dots
+    const dayEvents = events.filter(e =>
+      e.parsedDate === ymd &&
       (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes("public")) &&
-      e.PROGRAM && e.PROGRAM.trim()!==""
+      e.PROGRAM && e.PROGRAM.trim() !== ""
     );
 
-    // MULTI EVENT DOTS (stacked)
-    dayEvents.forEach(()=> {
+    if(dayEvents.length > 0){
       const evDot = document.createElement("div");
-      evDot.className="event-dot";
-      dot.appendChild(evDot);
-    });
+      evDot.className = "event-dot";
+      dayEl.appendChild(evDot);
+    }
 
-    if(selectedDateStr===ymd) dayEl.classList.add("selected");
+    if(selectedDateStr === ymd) dayEl.classList.add("selected");
 
-    dayEl.onclick=()=>{
-      selectedDateStr=ymd;
+    dayEl.onclick = () => {
+      selectedDateStr = ymd;
       populatePanelForDate(ymd);
       document.querySelectorAll(".day.selected").forEach(el=>el.classList.remove("selected"));
       dayEl.classList.add("selected");
@@ -288,64 +307,103 @@ function renderCalendar(){
 }
 
 function populatePanelForDate(ymd){
-  const panelDate=document.getElementById("panelDate");
-  const panelList=document.getElementById("panelList");
+  const panelDate = document.getElementById("panelDate");
+  const panelList = document.getElementById("panelList");
 
-  const d=parseYMDLocal(ymd);
-  panelDate.textContent=d.toLocaleString("default",{day:"numeric",month:"long",year:"numeric"});
+  const d = parseYMDLocal(ymd);
+  panelDate.textContent = d.toLocaleString("default",{day:"numeric",month:"long",year:"numeric"});
 
-  const dayEvents=events.filter(e=>
-    e.parsedDate===ymd &&
+  const dayEvents = events.filter(e =>
+    e.parsedDate === ymd &&
     (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes("public")) &&
-    e.PROGRAM && e.PROGRAM.trim()!==""
+    e.PROGRAM && e.PROGRAM.trim() !== ""
   );
 
-  if(dayEvents.length===0){
-    panelList.innerHTML=`<div class="no-events">No events planned for today</div>`;
+  if(dayEvents.length === 0){
+    panelList.innerHTML = `<div class="no-events">No events planned for today</div>`;
     return;
   }
 
-  panelList.innerHTML="";
+  panelList.innerHTML = "";
 
   dayEvents.forEach(ev=>{
-    const item=document.createElement("div");
+    const item = document.createElement("div");
     item.className="event-item";
-    const icon=document.createElement("div");
+
+    const icon = document.createElement("div");
     icon.className="event-icon";
-    icon.textContent=ev.PROGRAM.split(" ").map(x=>x[0]).join("").substring(0,2).toUpperCase();
-    const body=document.createElement("div");
-    const title=document.createElement("div");
+    icon.textContent = ev.PROGRAM.split(" ").map(x=>x[0]).join("").substring(0,2).toUpperCase();
+
+    const body = document.createElement("div");
+    const title = document.createElement("div");
     title.className="event-title";
-    title.textContent=ev.PROGRAM;
-    const meta=document.createElement("div");
-    meta.innerHTML=
-      (ev.LOCATION?`📍 ${escapeHtml(ev.LOCATION)}`:"")+
-      (ev.CONTACT?` • ☎ ${escapeHtml(ev.CONTACT)}`:"")+
+    title.textContent = ev.PROGRAM;
+
+    const meta = document.createElement("div");
+    meta.innerHTML =
+      (ev.LOCATION?`📍 ${escapeHtml(ev.LOCATION)}`:"") +
+      (ev.CONTACT?` • ☎ ${escapeHtml(ev.CONTACT)}`:"") +
       (ev.COMMENTS?`<div style="color:#9aa6b2;margin-top:6px;">${escapeHtml(ev.COMMENTS)}</div>`:"");
+
     body.appendChild(title);
     body.appendChild(meta);
     item.appendChild(icon);
     item.appendChild(body);
+
     panelList.appendChild(item);
   });
 }
 
 function initMonthYearSelectors(){
-  const monthSel=document.getElementById("monthSelect");
-  const yearSel=document.getElementById("yearSelect");
-  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
-  months.forEach((m,i)=>{const o=document.createElement("option");o.value=i;o.textContent=m;monthSel.appendChild(o);});
-  const yr=currentDate.getFullYear();
-  for(let y=yr-5;y<=yr+20;y++){const o=document.createElement("option");o.value=y;o.textContent=y;yearSel.appendChild(o);}
-  monthSel.value=currentDate.getMonth();
-  yearSel.value=currentDate.getFullYear();
-  monthSel.onchange=()=>{currentDate.setMonth(parseInt(monthSel.value)); renderCalendar();}
-  yearSel.onchange=()=>{currentDate.setFullYear(parseInt(yearSel.value)); renderCalendar();}
+  const monthSel = document.getElementById("monthSelect");
+  const yearSel = document.getElementById("yearSelect");
+
+  const months = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  months.forEach((m,i)=>{
+    const o=document.createElement("option");
+    o.value=i; o.textContent=m;
+    monthSel.appendChild(o);
+  });
+
+  const yr = currentDate.getFullYear();
+  for(let y=yr-5; y<=yr+20; y++){
+    const o=document.createElement("option");
+    o.value=y; o.textContent=y;
+    yearSel.appendChild(o);
+  }
+
+  monthSel.value = currentDate.getMonth();
+  yearSel.value = currentDate.getFullYear();
+
+  monthSel.onchange = ()=>{
+    currentDate.setMonth(parseInt(monthSel.value));
+    renderCalendar();
+  };
+
+  yearSel.onchange = ()=>{
+    currentDate.setFullYear(parseInt(yearSel.value));
+    renderCalendar();
+  };
 }
 
-document.getElementById("prevMonthBtn").onclick=()=>{currentDate.setMonth(currentDate.getMonth()-1); initMonthYearSelectors(); renderCalendar();}
-document.getElementById("nextMonthBtn").onclick=()=>{currentDate.setMonth(currentDate.getMonth()+1); initMonthYearSelectors(); renderCalendar();}
-document.getElementById("fab").onclick=()=>{alert("Add event UI placeholder");}
+document.getElementById("prevMonthBtn").onclick = ()=>{
+  currentDate.setMonth(currentDate.getMonth()-1);
+  initMonthYearSelectors();
+  renderCalendar();
+};
+document.getElementById("nextMonthBtn").onclick = ()=>{
+  currentDate.setMonth(currentDate.getMonth()+1);
+  initMonthYearSelectors();
+  renderCalendar();
+};
+
+document.getElementById("fab").onclick = ()=>{
+  alert("Add event UI placeholder");
+};
 
 loadCsvAndParse();
 initMonthYearSelectors();
