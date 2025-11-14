@@ -1,103 +1,34 @@
-name: Update Calendar (scheduled)
+name: Update and Deploy Calendar
 
 on:
   schedule:
-    - cron: '0 * * * *'  # every hour
-  workflow_dispatch:
+    - cron: '0 * * * *'     # runs every hour (modify if needed)
+  workflow_dispatch:         # allows manual run
 
 permissions:
-  contents: write
   pages: write
   id-token: write
+  contents: read
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Fetch CSV and build index.html
-        env:
-          CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8HNWc5Lj5FPBV3vJfpUa3S4_W2h4O32e6W6uxqhamh4riojoSqtCnBpTrPabaln0esefo3ixCbp-v/pub?gid=0&single=true&output=csv"
-        run: |
-          set -e
-          python3 - <<'PY'
-          import requests, html, sys
-          from datetime import datetime, timezone
+      # ❗ NO HTML GENERATION
+      # We do NOT touch index.html
+      # We do NOT rewrite CSS/JS
+      # We ONLY deploy the repo as-is
 
-          csv_url = "${{ env.CSV_URL }}"
-          try:
-              r = requests.get(csv_url, timeout=30)
-              r.raise_for_status()
-              print("✅ CSV fetched successfully!")
-          except Exception as e:
-              print("❌ Failed fetching CSV:", e)
-              sys.exit(1)
-
-          text = r.text.strip()
-          lines = text.splitlines()
-          if not lines:
-              print("❌ Empty CSV")
-              sys.exit(1)
-
-          headers = [h.strip().strip('"') for h in lines[0].split(',')]
-          rows = [[c.strip().strip('"') for c in line.split(',')] for line in lines[1:]]
-
-          # Escape curly braces in CSS for .format()
-          html_out = """<!doctype html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>ICANJ Church Calendar</title>
-            <style>
-              body{{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f7f7f8;margin:0;padding:20px;text-align:center;}}
-              h1{{color:#2b6cb0;}}
-              table{{margin:auto;width:90%;border-collapse:collapse;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.1);border-radius:10px;overflow:hidden;}}
-              th,td{{padding:10px 14px;border-bottom:1px solid #eee;text-align:left;}}
-              th{{background:#eaf1fb;}}
-              .date{{white-space:nowrap;width:220px;}}
-              footer{{margin-top:20px;color:#555;}}
-            </style>
-          </head>
-          <body>
-            <h1>ICANJ Church Calendar</h1>
-            <table>
-              <thead><tr>{thead}</tr></thead>
-              <tbody>{tbody}</tbody>
-            </table>
-            <footer>Last updated: {updated}</footer>
-          </body>
-          </html>"""
-
-          thead = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
-          tbody_rows = []
-          for r in rows:
-              r = r + [''] * (len(headers) - len(r))
-              row_html = "<tr>" + "".join(f"<td>{html.escape(c)}</td>" for c in r) + "</tr>"
-              tbody_rows.append(row_html)
-
-          out = html_out.format(
-              updated=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-              thead=thead,
-              tbody="".join(tbody_rows)
-          )
-
-          with open('index.html', 'w', encoding='utf-8') as f:
-              f.write(out)
-          print("✅ index.html written successfully.")
-          PY
-
-      - name: Upload artifact for deployment
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: .   # deploy the real files exactly as they are
 
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
