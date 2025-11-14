@@ -296,15 +296,7 @@ function renderCalendar(){
       (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes('public'))
     );
 
-    if(dayEvents.length > 0){
-      dayEvents.forEach(()=> {
-        const evDot = document.createElement('div');
-        evDot.className = 'event-dot';
-        dayEl.appendChild(evDot);
-      });
-    }
-
-    if(selectedDateStr === ymd) dayEl.classList.add('selected');
+       if(selectedDateStr === ymd) dayEl.classList.add('selected');
 
     dayEl.addEventListener('click', ()=>{ 
       selectedDateStr = ymd; 
