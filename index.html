@@ -292,10 +292,22 @@ function renderCalendar(){
     dayEl.appendChild(dayNumber);
 
     // Check for PUBLIC events
-    const dayEvents = events.filter(e =>
-        e.parsedDate === ymd &&
-        (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes('public'))
-    );
+   // Check for real public events (not blank rows)
+const dayEvents = events.filter(e => {
+    if (e.parsedDate !== ymd) return false;
+    if (e.VISIBILITY && !e.VISIBILITY.toLowerCase().includes('public')) return false;
+
+    // At least ONE meaningful field must be present
+    const hasRealContent =
+        (e.TITLE && e.TITLE.trim() !== "") ||
+        (e.TIME && e.TIME.trim() !== "") ||
+        (e.VENUE && e.VENUE.trim() !== "") ||
+        (e.SPEAKER && e.SPEAKER.trim() !== "") ||
+        (e.DESCRIPTION && e.DESCRIPTION.trim() !== "");
+
+    return hasRealContent;
+});
+
 
     // 🔥 Add yellow dots ONLY if events exist
     if (dayEvents.length > 0) {
