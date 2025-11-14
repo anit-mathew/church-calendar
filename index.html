@@ -238,7 +238,6 @@ async function loadCsvAndParse(){
           const obj = {};
           headers.forEach((h,i)=>{ obj[h] = (row[i]||"").trim(); });
           if(obj["DATE"] && /^\d{4}-\d{2}-\d{2}$/.test(obj["DATE"])){
-            // Split multi-events
             const programs = obj.PROGRAM ? obj.PROGRAM.split('|') : [''];
             const locations = obj.LOCATION ? obj.LOCATION.split('|') : [''];
             const contacts = obj.CONTACT ? obj.CONTACT.split('|') : [''];
@@ -298,18 +297,18 @@ function renderCalendar(){
     dot.textContent = d;
     dayEl.appendChild(dot);
 
-    // Multi-event dot logic
+    // Show only one yellow dot per day if any public event exists
     const dayEvents = events.filter(e =>
       e.parsedDate === ymd &&
       (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes("public")) &&
       e.PROGRAM && e.PROGRAM.trim() !== ""
     );
 
-    dayEvents.forEach(()=> {
+    if(dayEvents.length > 0){
       const evDot = document.createElement("div");
       evDot.className = "event-dot";
       dayEl.appendChild(evDot);
-    });
+    }
 
     if(selectedDateStr === ymd) dayEl.classList.add("selected");
 
