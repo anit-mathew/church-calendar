@@ -277,7 +277,7 @@ function renderCalendar(){
     grid.appendChild(empty);
   }
 
-  for(let d=1; d<=totalDays; d++){
+  for (let d = 1; d <= totalDays; d++) {
     const dt = new Date(year, month, d);
     const ymd = toYMD(dt);
 
@@ -285,28 +285,42 @@ function renderCalendar(){
     dayEl.className = 'day';
     dayEl.dataset.ymd = ymd;
 
-    const dot = document.createElement('div');
-    dot.className = 'dot';
-    dot.textContent = d;
-    dayEl.appendChild(dot);
+    // Day number
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'dot';
+    dayNumber.textContent = d;
+    dayEl.appendChild(dayNumber);
 
-    // Only show dots if public events exist
-    const dayEvents = events.filter(e => 
-      e.parsedDate === ymd &&
-      (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes('public'))
+    // Check for PUBLIC events
+    const dayEvents = events.filter(e =>
+        e.parsedDate === ymd &&
+        (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes('public'))
     );
 
-       if(selectedDateStr === ymd) dayEl.classList.add('selected');
+    // 🔥 Add yellow dots ONLY if events exist
+    if (dayEvents.length > 0) {
+        dayEvents.forEach(() => {
+            const ev = document.createElement('div');
+            ev.className = 'event-dot';
+            dayEl.appendChild(ev);
+        });
+    }
 
-    dayEl.addEventListener('click', ()=>{ 
-      selectedDateStr = ymd; 
-      populatePanelForDate(ymd); 
-      document.querySelectorAll('.day.selected').forEach(el=>el.classList.remove('selected')); 
-      dayEl.classList.add('selected');
+    if (selectedDateStr === ymd) {
+        dayEl.classList.add('selected');
+    }
+
+    dayEl.addEventListener('click', () => {
+        selectedDateStr = ymd;
+        populatePanelForDate(ymd);
+        document.querySelectorAll('.day.selected')
+            .forEach(el => el.classList.remove('selected'));
+        dayEl.classList.add('selected');
     });
 
     grid.appendChild(dayEl);
-  }
+}
+
 }
 
 // Populate events panel
