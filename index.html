@@ -9,158 +9,157 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-  :root{
-    --blue: #2879b8;
-    --blue-dark: #1f6399;
-    --bg: #efefef;
-    --card: #ffffff;
-    --muted: #9aa6b2;
-    --accent: #ffd54f;
-  }
+:root{
+  --blue: #2879b8;
+  --blue-dark: #1f6399;
+  --bg: #efefef;
+  --card: #ffffff;
+  --muted: #9aa6b2;
+  --accent: #ffd54f;
+}
 
-  html,body{
-    height:100%;
-    margin:0;
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:var(--bg);
-  }
-  body{color:#24313a;}
+html,body{
+  height:100%;
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+}
 
-  .wrap{
-    width:100%;
-    max-width:720px;
-    margin:auto;
-    box-shadow:0 6px 20px rgba(0,0,0,0.12);
-    border-radius:6px;
-    overflow:hidden;
-    background:var(--card);
-  }
+.wrap{
+  width:100%;
+  max-width:720px;
+  margin:auto;
+  box-shadow:0 6px 20px rgba(0,0,0,0.12);
+  border-radius:6px;
+  overflow:hidden;
+  background:var(--card);
+}
 
-  .title-strip{
-    background: var(--blue-dark);
-    color:white;
-    font-weight:600;
-    font-size:1.25rem;
-    text-align:center;
-    padding:12px;
-  }
+.title-strip{
+  background: var(--blue-dark);
+  color:white;
+  font-weight:600;
+  font-size:1.25rem;
+  text-align:center;
+  padding:12px;
+}
 
-  .top {
-    background: linear-gradient(180deg,var(--blue),var(--blue-dark));
-    color:white;
-    padding:12px;
-  }
+.top {
+  background: linear-gradient(180deg,var(--blue),var(--blue-dark));
+  color:white;
+  padding:12px;
+}
 
-  .top-bar{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:12px;
-    margin-bottom:10px;
-  }
+.top-bar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin-bottom:10px;
+}
 
-  select{
-    padding:4px 6px;
-    border-radius:4px;
-    border:none;
-    font-weight:600;
-  }
+select{
+  padding:4px 6px;
+  border-radius:4px;
+  border:none;
+  font-weight:600;
+}
 
-  button{
-    background:transparent;
-    border:none;
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
-    font-size:1.2rem;
-  }
+button{
+  background:transparent;
+  border:none;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  font-size:1.2rem;
+}
 
-  .weekday-row{
-    display:grid;
-    grid-template-columns:repeat(7,1fr);
-    gap:6px;
-    margin-top:10px;
-    color:rgba(255,255,255,0.85);
-    font-size:0.78rem;
-    text-align:center;
-    padding:0 6px;
-  }
+.weekday-row{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+  margin-top:10px;
+  color:rgba(255,255,255,0.85);
+  font-size:0.78rem;
+  text-align:center;
+  padding:0 6px;
+}
 
-  .calendar-grid {
-    display:grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap:8px;
-    padding:10px;
-    height:420px;
-    box-sizing:border-box;
-  }
+.calendar-grid {
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:8px;
+  padding:10px;
+  height:420px;
+  box-sizing:border-box;
+}
 
-  .day {
-    background: transparent;
-    min-height:50px;
-    border-radius:6px;
-    color:rgba(255,255,255,0.95);
-    position:relative;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding-top:6px;
-    font-size:0.95rem;
-    cursor:pointer;
-  }
+.day {
+  background: transparent;
+  min-height:50px;
+  border-radius:6px;
+  color:rgba(255,255,255,0.95);
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding-top:6px;
+  font-size:0.95rem;
+  cursor:pointer;
+}
 
-  .day.disabled{ opacity:0.25; cursor:default; }
+.day.disabled{ opacity:0.25; cursor:default; }
 
-  .day .dot {
-    width:36px;height:36px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    background: rgba(255,255,255,0.12);
-    font-weight:600;
-  }
+.day .dot {
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background: rgba(255,255,255,0.12);
+  font-weight:600;
+}
 
-  .day.selected .dot {
-    background: rgba(255,255,255,0.18);
-    box-shadow: 0 0 0 10px rgba(255,255,255,0.03) inset;
-  }
+.day.selected .dot {
+  background: rgba(255,255,255,0.18);
+  box-shadow: 0 0 0 10px rgba(255,255,255,0.03) inset;
+}
 
-  .event-dot {
-    width:8px;height:8px;border-radius:50%;
-    background:var(--accent);
-    margin-top:6px;
-  }
+.event-dot {
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent);
+  margin-top:2px;
+}
 
-  .fab {
-    position:absolute; right:18px; bottom:96px; width:52px; height:52px; border-radius:50%;
-    background:#222; color:white; display:grid; place-items:center; box-shadow:0 8px 18px rgba(0,0,0,0.25); cursor:pointer;
-  }
+.fab {
+  position:absolute; right:18px; bottom:96px; width:52px; height:52px; border-radius:50%;
+  background:#222; color:white; display:grid; place-items:center; box-shadow:0 8px 18px rgba(0,0,0,0.25); cursor:pointer;
+}
 
-  .events-panel {
-    background:var(--card);
-    border-top-left-radius:10px;
-    border-top-right-radius:10px;
-    padding:12px 14px;
-    max-height:320px;
-    overflow:auto;
-  }
+.events-panel {
+  background:var(--card);
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
+  padding:12px 14px;
+  max-height:320px;
+  overflow:auto;
+}
 
-  .panel-date { font-weight:600; margin-bottom:6px; color:#22313a; }
-  .no-events { text-align:center; color:var(--muted); padding:22px 6px; font-style:italic; }
+.panel-date { font-weight:600; margin-bottom:6px; color:#22313a; }
+.no-events { text-align:center; color:var(--muted); padding:22px 6px; font-style:italic; }
 
-  .event-item { display:flex; gap:10px; padding:12px 6px; border-bottom:1px solid #f0f3f5; }
-  .event-icon {
-    width:44px; height:44px; border-radius:8px;
-    background:var(--blue); color:white; display:grid; place-items:center; font-weight:700;
-  }
-  .event-title { font-weight:600; }
+.event-item { display:flex; gap:10px; padding:12px 6px; border-bottom:1px solid #f0f3f5; }
+.event-icon {
+  width:44px; height:44px; border-radius:8px;
+  background:var(--blue); color:white; display:grid; place-items:center; font-weight:700;
+}
+.event-title { font-weight:600; }
 
-  @media (max-width:420px) {
-    .wrap{ margin:10px; }
-    .fab{ right:14px; bottom:120px; }
-  }
+@media (max-width:420px) {
+  .wrap{ margin:10px; }
+  .fab{ right:14px; bottom:120px; }
+}
 </style>
 </head>
 <body>
@@ -233,14 +232,33 @@ async function loadCsvAndParse(){
         const headers = data[headerRowIndex].map(h => (h||"").trim().toUpperCase());
         const rows = data.slice(headerRowIndex+1);
 
-        events = rows.map(row => {
+        events = [];
+
+        rows.forEach(row=>{
           const obj = {};
           headers.forEach((h,i)=>{ obj[h] = (row[i]||"").trim(); });
-          if(obj["DATE"] && /^\d{4}-\d{2}-\d{2}$/.test(obj["DATE"])) {
-            obj.parsedDate = obj["DATE"];
+          if(obj["DATE"] && /^\d{4}-\d{2}-\d{2}$/.test(obj["DATE"])){
+            // Split multi-events
+            const programs = obj.PROGRAM ? obj.PROGRAM.split('|') : [''];
+            const locations = obj.LOCATION ? obj.LOCATION.split('|') : [''];
+            const contacts = obj.CONTACT ? obj.CONTACT.split('|') : [''];
+            const comments = obj.COMMENTS ? obj.COMMENTS.split('|') : [''];
+            const visibilities = obj.VISIBILITY ? obj.VISIBILITY.split('|') : [''];
+
+            const maxLen = Math.max(programs.length, locations.length, contacts.length, comments.length, visibilities.length);
+
+            for(let i=0;i<maxLen;i++){
+              events.push({
+                parsedDate: obj.DATE,
+                PROGRAM: programs[i] ? programs[i].trim() : '',
+                LOCATION: locations[i] ? locations[i].trim() : '',
+                CONTACT: contacts[i] ? contacts[i].trim() : '',
+                COMMENTS: comments[i] ? comments[i].trim() : '',
+                VISIBILITY: visibilities[i] ? visibilities[i].trim() : 'Public'
+              });
+            }
           }
-          return obj;
-        }).filter(o => o.parsedDate);
+        });
 
         renderCalendar();
       }
@@ -280,18 +298,18 @@ function renderCalendar(){
     dot.textContent = d;
     dayEl.appendChild(dot);
 
-    // FIX: Only real events create yellow dots
+    // Multi-event dot logic
     const dayEvents = events.filter(e =>
       e.parsedDate === ymd &&
       (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes("public")) &&
       e.PROGRAM && e.PROGRAM.trim() !== ""
     );
 
-    if(dayEvents.length > 0){
+    dayEvents.forEach(()=> {
       const evDot = document.createElement("div");
       evDot.className = "event-dot";
       dayEl.appendChild(evDot);
-    }
+    });
 
     if(selectedDateStr === ymd) dayEl.classList.add("selected");
 
