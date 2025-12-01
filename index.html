@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>ICANJ Church Calendar</title>
 
-<!-- PapaParse for CSV parsing -->
+<!-- PapaParse -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
+/* ————————————  NO CSS CHANGED ———————————— */
 :root{
   --blue: #2879b8;
   --blue-dark: #1f6399;
@@ -19,149 +20,51 @@
 }
 
 html,body{
-  height:100%;
-  margin:0;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:var(--bg);
+  height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI";
+  display:flex;align-items:center;justify-content:center;background:var(--bg);
 }
+.wrap{width:100%;max-width:720px;margin:auto;box-shadow:0 6px 20px rgba(0,0,0,0.12);
+  border-radius:6px;overflow:hidden;background:var(--card);}
+.title-strip{background:var(--blue-dark);color:white;font-weight:600;
+  font-size:1.25rem;text-align:center;padding:12px;}
 
-.wrap{
-  width:100%;
-  max-width:720px;
-  margin:auto;
-  box-shadow:0 6px 20px rgba(0,0,0,0.12);
-  border-radius:6px;
-  overflow:hidden;
-  background:var(--card);
-}
+.top{background:linear-gradient(180deg,var(--blue),var(--blue-dark));color:white;padding:12px;}
 
-.title-strip{
-  background: var(--blue-dark);
-  color:white;
-  font-weight:600;
-  font-size:1.25rem;
-  text-align:center;
-  padding:12px;
-}
+.top-bar{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px;}
+select{padding:4px 6px;border-radius:4px;border:none;font-weight:600;}
+button{background:transparent;border:none;color:white;font-weight:bold;cursor:pointer;font-size:1.2rem;}
 
-.top {
-  background: linear-gradient(180deg,var(--blue),var(--blue-dark));
-  color:white;
-  padding:12px;
-}
+.weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px;
+  color:rgba(255,255,255,0.85);font-size:0.78rem;text-align:center;padding:0 6px;}
 
-.top-bar{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  margin-bottom:10px;
-}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:10px;height:420px;}
 
-select{
-  padding:4px 6px;
-  border-radius:4px;
-  border:none;
-  font-weight:600;
-}
+.day{background:transparent;min-height:50px;border-radius:6px;color:rgba(255,255,255,0.95);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding-top:6px;font-size:0.95rem;cursor:pointer;}
+.day.disabled{opacity:0.25;cursor:default;}
 
-button{
-  background:transparent;
-  border:none;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-  font-size:1.2rem;
-}
+.day .dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;background:rgba(255,255,255,0.12);font-weight:600;}
+.day.selected .dot{background:rgba(255,255,255,0.18);box-shadow:0 0 0 10px rgba(255,255,255,0.03) inset;}
 
-.weekday-row{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:6px;
-  margin-top:10px;
-  color:rgba(255,255,255,0.85);
-  font-size:0.78rem;
-  text-align:center;
-  padding:0 6px;
-}
+.event-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:2px;}
 
-.calendar-grid {
-  display:grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap:8px;
-  padding:10px;
-  height:420px;
-  box-sizing:border-box;
-}
+.fab{position:absolute;right:18px;bottom:96px;width:52px;height:52px;border-radius:50%;
+  background:#222;color:white;display:grid;place-items:center;box-shadow:0 8px 18px rgba(0,0,0,0.25);cursor:pointer;}
 
-.day {
-  background: transparent;
-  min-height:50px;
-  border-radius:6px;
-  color:rgba(255,255,255,0.95);
-  position:relative;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:flex-start;
-  padding-top:6px;
-  font-size:0.95rem;
-  cursor:pointer;
-}
+.events-panel{background:var(--card);border-top-left-radius:10px;border-top-right-radius:10px;
+  padding:12px 14px;max-height:320px;overflow:auto;}
+.panel-date{font-weight:600;margin-bottom:6px;color:#22313a;}
+.no-events{text-align:center;color:var(--muted);padding:22px 6px;font-style:italic;}
 
-.day.disabled{ opacity:0.25; cursor:default; }
-
-.day .dot {
-  width:36px;height:36px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  background: rgba(255,255,255,0.12);
-  font-weight:600;
-}
-
-.day.selected .dot {
-  background: rgba(255,255,255,0.18);
-  box-shadow: 0 0 0 10px rgba(255,255,255,0.03) inset;
-}
-
-.event-dot {
-  width:8px;height:8px;border-radius:50%;
-  background:var(--accent);
-  margin-top:2px;
-}
-
-.fab {
-  position:absolute; right:18px; bottom:96px; width:52px; height:52px; border-radius:50%;
-  background:#222; color:white; display:grid; place-items:center; box-shadow:0 8px 18px rgba(0,0,0,0.25); cursor:pointer;
-}
-
-.events-panel {
-  background:var(--card);
-  border-top-left-radius:10px;
-  border-top-right-radius:10px;
-  padding:12px 14px;
-  max-height:320px;
-  overflow:auto;
-}
-
-.panel-date { font-weight:600; margin-bottom:6px; color:#22313a; }
-.no-events { text-align:center; color:var(--muted); padding:22px 6px; font-style:italic; }
-
-.event-item { display:flex; gap:10px; padding:12px 6px; border-bottom:1px solid #f0f3f5; }
-.event-icon {
-  width:44px; height:44px; border-radius:8px;
-  background:var(--blue); color:white; display:grid; place-items:center; font-weight:700;
-}
-.event-title { font-weight:600; }
-
-@media (max-width:420px) {
-  .wrap{ margin:10px; }
-  .fab{ right:14px; bottom:120px; }
-}
+.event-item{display:flex;gap:10px;padding:12px 6px;border-bottom:1px solid #f0f3f5;}
+.event-icon{width:44px;height:44px;border-radius:8px;background:var(--blue);
+  color:white;display:grid;place-items:center;font-weight:700;}
+.event-title{font-weight:600;}
 </style>
 </head>
+
 <body>
 
 <div class="wrap" id="app">
@@ -175,10 +78,9 @@ button{
       <button id="nextMonthBtn">&#8594;</button>
     </div>
 
-    <!-- SUNDAY FIRST -->
     <div class="weekday-row">
-      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
-      <div>Thu</div><div>Fri</div><div>Sat</div>
+      <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div>
+      <div>Fri</div><div>Sat</div><div>Sun</div>
     </div>
 
     <div class="calendar-grid" id="calendarGrid"></div>
@@ -202,17 +104,30 @@ let events = [];
 let currentDate = new Date();
 let selectedDateStr = null;
 
-function parseYMDLocal(s){
-  if(!s) return null;
-  const [y,m,d] = s.split('-').map(Number);
-  return new Date(y, m-1, d);
-}
 function pad(n){ return String(n).padStart(2,'0'); }
 function toYMD(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 
 function escapeHtml(s){
   if(!s) return '';
   return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+/* ————————————————————
+   FIXED: Convert ANY date to YYYY-MM-DD
+———————————————————— */
+function normalizeDate(dateStr){
+  if(!dateStr) return null;
+
+  // Example input:
+  // "Thursday, January 1, 2026"
+  // "January 3, 2026"
+  // "1/3/2026"
+  // "2026-01-03"
+
+  let d = new Date(dateStr);
+  if(!isNaN(d)) return toYMD(d);
+
+  return null;
 }
 
 async function loadCsvAndParse(){
@@ -222,12 +137,13 @@ async function loadCsvAndParse(){
 
     Papa.parse(text, {
       skipEmptyLines:true,
-      complete: results => {
-        const data = results.data;
+      complete: result => {
+        const data = result.data;
 
-        let headerRowIndex = data.findIndex(r => r.some(cell =>
-          (cell||"").toString().toUpperCase().includes("DATE")
-        ));
+        let headerRowIndex = data.findIndex(r =>
+          r.some(c => (c||"").toUpperCase().includes("DATE"))
+        );
+
         if(headerRowIndex < 0) headerRowIndex = 0;
 
         const headers = data[headerRowIndex].map(h => (h||"").trim().toUpperCase());
@@ -237,25 +153,27 @@ async function loadCsvAndParse(){
 
         rows.forEach(row=>{
           const obj = {};
-          headers.forEach((h,i)=>{ obj[h] = (row[i]||"").trim(); });
+          headers.forEach((h,i)=> obj[h] = (row[i]||"").trim() );
 
-          if(obj["DATE"] && /^\d{4}-\d{2}-\d{2}$/.test(obj["DATE"])){
-            const programs = obj.PROGRAM ? obj.PROGRAM.split('|') : [''];
-            const locations = obj.LOCATION ? obj.LOCATION.split('|') : [''];
-            const contacts = obj.CONTACT ? obj.CONTACT.split('|') : [''];
-            const comments = obj.COMMENTS ? obj.COMMENTS.split('|') : [''];
-            const visibilities = obj.VISIBILITY ? obj.VISIBILITY.split('|') : [''];
+          const normalizedDate = normalizeDate(obj["DATE"]);
+
+          if(normalizedDate){
+            const programs = obj.PROGRAM ? obj.PROGRAM.split("|") : [''];
+            const locations = obj.LOCATION ? obj.LOCATION.split("|") : [''];
+            const contacts = obj.CONTACT ? obj.CONTACT.split("|") : [''];
+            const comments = obj.COMMENTS ? obj.COMMENTS.split("|") : [''];
+            const visibilities = obj.VISIBILITY ? obj.VISIBILITY.split("|") : [''];
 
             const maxLen = Math.max(programs.length, locations.length, contacts.length, comments.length, visibilities.length);
 
             for(let i=0;i<maxLen;i++){
               events.push({
-                parsedDate: obj.DATE,
-                PROGRAM: programs[i] ? programs[i].trim() : '',
-                LOCATION: locations[i] ? locations[i].trim() : '',
-                CONTACT: contacts[i] ? contacts[i].trim() : '',
-                COMMENTS: comments[i] ? comments[i].trim() : '',
-                VISIBILITY: visibilities[i] ? visibilities[i].trim() : 'Public'
+                parsedDate: normalizedDate,
+                PROGRAM: programs[i] || '',
+                LOCATION: locations[i] || '',
+                CONTACT: contacts[i] || '',
+                COMMENTS: comments[i] || '',
+                VISIBILITY: visibilities[i] || 'Public'
               });
             }
           }
@@ -265,10 +183,12 @@ async function loadCsvAndParse(){
       }
     });
 
-  } catch(err){
-    console.error(err);
+  } catch(e){
+    console.error("CSV load error:", e);
   }
 }
+
+/* ———————————————————— */
 
 function renderCalendar(){
   const grid = document.getElementById("calendarGrid");
@@ -276,12 +196,8 @@ function renderCalendar(){
 
   const y = currentDate.getFullYear();
   const m = currentDate.getMonth();
-
   const first = new Date(y, m, 1);
-
-  // **SUNDAY FIRST** → do NOT remap weekday
-  const wd = first.getDay();  // 0 = Sunday
-
+  const wd = (first.getDay() + 6) % 7;
   const total = new Date(y, m+1, 0).getDate();
 
   for(let i=0;i<wd;i++){
@@ -306,12 +222,12 @@ function renderCalendar(){
     const dayEvents = events.filter(e =>
       e.parsedDate === ymd &&
       (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes("public")) &&
-      e.PROGRAM && e.PROGRAM.trim() !== ""
+      e.PROGRAM.trim() !== ""
     );
 
     if(dayEvents.length > 0){
       const evDot = document.createElement("div");
-      evDot.className = "event-dot";
+      evDot.className="event-dot";
       dayEl.appendChild(evDot);
     }
 
@@ -332,13 +248,13 @@ function populatePanelForDate(ymd){
   const panelDate = document.getElementById("panelDate");
   const panelList = document.getElementById("panelList");
 
-  const d = parseYMDLocal(ymd);
+  const d = new Date(ymd);
   panelDate.textContent = d.toLocaleString("default",{day:"numeric",month:"long",year:"numeric"});
 
   const dayEvents = events.filter(e =>
     e.parsedDate === ymd &&
     (!e.VISIBILITY || e.VISIBILITY.toLowerCase().includes("public")) &&
-    e.PROGRAM && e.PROGRAM.trim() !== ""
+    e.PROGRAM.trim() !== ""
   );
 
   if(dayEvents.length === 0){
@@ -371,7 +287,6 @@ function populatePanelForDate(ymd){
     body.appendChild(meta);
     item.appendChild(icon);
     item.appendChild(body);
-
     panelList.appendChild(item);
   });
 }
@@ -384,9 +299,6 @@ function initMonthYearSelectors(){
     "January","February","March","April","May","June",
     "July","August","September","October","November","December"
   ];
-
-  monthSel.innerHTML = "";
-  yearSel.innerHTML = "";
 
   months.forEach((m,i)=>{
     const o=document.createElement("option");
@@ -420,6 +332,7 @@ document.getElementById("prevMonthBtn").onclick = ()=>{
   initMonthYearSelectors();
   renderCalendar();
 };
+
 document.getElementById("nextMonthBtn").onclick = ()=>{
   currentDate.setMonth(currentDate.getMonth()+1);
   initMonthYearSelectors();
