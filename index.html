@@ -283,8 +283,8 @@ function populatePanelForDate(ymd){
     const meta = document.createElement("div");
     meta.innerHTML =
       (ev.LOCATION?`📍 ${escapeHtml(ev.LOCATION)}<br>`:"") +
-      (ev.CONTACT?` • ☎ ${escapeHtml(ev.CONTACT)}<br>`:"") +
-      (ev.COMMENTS ? ` • 💬 <span style="color:#9aa6b2;">${escapeHtml(ev.COMMENTS)}</span>` : "");
+      (ev.CONTACT?` ☎ ${escapeHtml(ev.CONTACT)}<br>`:"") +
+      (ev.COMMENTS ? ` 💬 <span style="color:#9aa6b2;">${escapeHtml(ev.COMMENTS)}</span>` : "");
 
     body.appendChild(title);
     body.appendChild(meta);
