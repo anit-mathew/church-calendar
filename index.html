@@ -284,7 +284,7 @@ function populatePanelForDate(ymd){
     meta.innerHTML =
       (ev.LOCATION?`📍 ${escapeHtml(ev.LOCATION)}`:"") +
       (ev.CONTACT?` • ☎ ${escapeHtml(ev.CONTACT)}`:"") +
-      (ev.COMMENTS?`<div style="color:#9aa6b2;margin-top:6px;">${escapeHtml(ev.COMMENTS)}</div>`:"");
+      (ev.COMMENTS ? ` • 💬 <span style="color:#9aa6b2;">${escapeHtml(ev.COMMENTS)}</span>` : "");
 
     body.appendChild(title);
     body.appendChild(meta);
