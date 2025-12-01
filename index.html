@@ -251,8 +251,9 @@ function populatePanelForDate(ymd){
   const panelDate = document.getElementById("panelDate");
   const panelList = document.getElementById("panelList");
 
-  const d = new Date(ymd);
-  panelDate.textContent = d.toLocaleString("default",{day:"numeric",month:"long",year:"numeric"});
+const parts = ymd.split("-");
+const d = new Date(parts[0], parts[1]-1, parts[2]); // Local date
+panelDate.textContent = d.toLocaleString("default",{day:"numeric",month:"long",year:"numeric"});
 
   const dayEvents = events.filter(e =>
     e.parsedDate === ymd &&
