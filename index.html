@@ -119,7 +119,7 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
     cursor:pointer;
     font-weight:600;
   ">
-    Full Month View ON
+    Month View
   </button>
 </div>
   <div class="events-panel">
@@ -171,10 +171,10 @@ document.getElementById("fullMonthBtn").onclick = () => {
   const btn = document.getElementById("fullMonthBtn");
 
   if (fullMonthOn) {
-    btn.textContent = "Full Month View OFF";
+    btn.textContent = "Day View";
     showFullMonthEvents();
   } else {
-    btn.textContent = "Full Month View ON";
+    btn.textContent = "Month View";
     if (selectedDateStr) {
       populatePanelForDate(selectedDateStr);
     } else {
