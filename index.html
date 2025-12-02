@@ -412,7 +412,16 @@ function showFullMonthEvents() {
 
     const title = document.createElement("div");
     title.className = "event-title";
-    title.textContent = ev.PROGRAM;
+
+    // ⭐ ADD DATE DISPLAY ⭐
+    const parts = ev.parsedDate.split("-");
+    const localDate = new Date(parts[0], parts[1]-1, parts[2]);
+    const formattedDate = localDate.toLocaleString("default", {
+      month: "short",
+      day: "numeric"
+    });
+
+    title.textContent = `${formattedDate} – ${ev.PROGRAM}`;
 
     const meta = document.createElement("div");
     meta.innerHTML =
@@ -429,6 +438,7 @@ function showFullMonthEvents() {
     panelList.appendChild(item);
   });
 }
+
 
 document.getElementById("fab").onclick = ()=>{
   alert("Add event UI placeholder");
