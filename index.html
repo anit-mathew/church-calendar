@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-/* ————————————  NO CSS CHANGED ———————————— */
+
 :root{
   --blue: #2879b8;
   --blue-dark: #1f6399;
@@ -53,8 +53,21 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
 .fab{position:absolute;right:18px;bottom:96px;width:52px;height:52px;border-radius:50%;
   background:#222;color:white;display:grid;place-items:center;box-shadow:0 8px 18px rgba(0,0,0,0.25);cursor:pointer;}
 
-.events-panel{background:var(--card);border-top-left-radius:10px;border-top-right-radius:10px;
-  padding:12px 14px;max-height:320px;overflow:auto;}
+.events-panel{
+  background:var(--card);
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
+  padding:12px 14px;
+
+  /* FIXED HEIGHT */
+  height:320px;           
+  max-height:320px;
+
+  /* SCROLL INSIDE, NOT OUTSIDE */
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+  
 .panel-date{font-weight:600;margin-bottom:6px;color:#22313a;}
 .no-events{text-align:center;color:var(--muted);padding:22px 6px;font-style:italic;}
 
