@@ -9,7 +9,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>     
-
 :root{
   --blue: #2879b8;
   --blue-dark: #1f6399;
@@ -58,12 +57,8 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
   border-top-left-radius:10px;
   border-top-right-radius:10px;
   padding:12px 14px;
-
-  /* FIXED HEIGHT */
   height:320px;           
   max-height:320px;
-
-  /* SCROLL INSIDE, NOT OUTSIDE */
   overflow-y:auto;
   overflow-x:hidden;
 }
@@ -82,8 +77,6 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
   overflow-wrap: break-word;
   white-space: normal !important;
 }
-
-  
 </style>
 </head>
 
@@ -100,7 +93,6 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
       <button id="nextMonthBtn">&#8594;</button>
     </div>
 
-    <!-- SUNDAY FIRST -->
     <div class="weekday-row">
       <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
       <div>Thu</div><div>Fri</div><div>Sat</div>
@@ -108,7 +100,7 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
 
     <div class="calendar-grid" id="calendarGrid"></div>
   </div>
-  
+
 <div style="text-align:center; padding:10px;">
   <button id="fullMonthBtn" style="
     padding:8px 12px;
@@ -122,6 +114,7 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
     Month View
   </button>
 </div>
+
   <div class="events-panel">
     <div class="panel-date" id="panelDate">Select a date</div>
     <div id="panelList">
@@ -146,26 +139,20 @@ function escapeHtml(s){
   return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
 
-/* ————————————
-   Fix timezone: parse date in local time always
-———————————————— */
 function parseLocalDate(str){
   const d = new Date(str);
   if (isNaN(d)) return null;
-
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function normalizeDate(dateStr){
   if(!dateStr) return null;
-
   const d = parseLocalDate(dateStr);
   if(d) return toYMD(d);
-
   return null;
 }
-let fullMonthOn = false;
 
+let fullMonthOn = false;
 document.getElementById("fullMonthBtn").onclick = () => {
   fullMonthOn = !fullMonthOn;
   const btn = document.getElementById("fullMonthBtn");
@@ -184,7 +171,7 @@ document.getElementById("fullMonthBtn").onclick = () => {
     }
   }
 };
-  
+
 async function loadCsvAndParse(){
   try{
     const res = await fetch(CSV_URL);
@@ -203,6 +190,19 @@ async function loadCsvAndParse(){
 
         const headers = data[headerRowIndex].map(h => (h||"").trim().toUpperCase());
         const rows = data.slice(headerRowIndex+1);
+
+        // ============================================================
+        //               ⭐ MERGED CELL SIMULATION ⭐
+        //     If a row cell is empty, inherit the cell above it
+        // ============================================================
+        for (let i = 1; i < rows.length; i++) {
+          rows[i].forEach((cell, col) => {
+            if (!cell || cell.trim() === "") {
+              rows[i][col] = rows[i-1][col];  
+            }
+          });
+        }
+        // ============================================================
 
         events = [];
 
@@ -251,9 +251,7 @@ function renderCalendar(){
   const m = currentDate.getMonth();
   const first = new Date(y, m, 1);
 
-  /* SUNDAY FIRST — offset Monday=1 → Sunday=0 */
-  const wd = first.getDay();  // 0=Sun, 1=Mon…
-
+  const wd = first.getDay();  
   const total = new Date(y, m+1, 0).getDate();
 
   for(let i=0;i<wd;i++){
@@ -304,9 +302,9 @@ function populatePanelForDate(ymd){
   const panelDate = document.getElementById("panelDate");
   const panelList = document.getElementById("panelList");
 
-const parts = ymd.split("-");
-const d = new Date(parts[0], parts[1]-1, parts[2]); // Local date
-panelDate.textContent = d.toLocaleString("default",{day:"numeric",month:"long",year:"numeric"});
+  const parts = ymd.split("-");
+  const d = new Date(parts[0], parts[1]-1, parts[2]); 
+  panelDate.textContent = d.toLocaleString("default",{day:"numeric",month:"long",year:"numeric"});
 
   const dayEvents = events.filter(e =>
     e.parsedDate === ymd &&
@@ -395,6 +393,7 @@ document.getElementById("nextMonthBtn").onclick = ()=>{
   initMonthYearSelectors();
   renderCalendar();
 };
+
 function showFullMonthEvents() {
   const panelDate = document.getElementById("panelDate");
   const panelList = document.getElementById("panelList");
@@ -433,7 +432,6 @@ function showFullMonthEvents() {
     const title = document.createElement("div");
     title.className = "event-title";
 
-    // ⭐ ADD DATE DISPLAY ⭐
     const parts = ev.parsedDate.split("-");
     const localDate = new Date(parts[0], parts[1]-1, parts[2]);
     const formattedDate = localDate.toLocaleString("default", {
