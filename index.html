@@ -86,8 +86,6 @@ button{background:transparent;border:none;color:white;font-weight:bold;cursor:po
 
     <div class="calendar-grid" id="calendarGrid"></div>
   </div>
-
-  <div class="fab" id="fab">+</div>
   
 <div style="text-align:center; padding:10px;">
   <button id="fullMonthBtn" style="
@@ -438,11 +436,6 @@ function showFullMonthEvents() {
     panelList.appendChild(item);
   });
 }
-
-
-document.getElementById("fab").onclick = ()=>{
-  alert("Add event UI placeholder");
-};
 
 loadCsvAndParse();
 initMonthYearSelectors();
