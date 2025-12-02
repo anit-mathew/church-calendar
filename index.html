@@ -144,7 +144,27 @@ function normalizeDate(dateStr){
 
   return null;
 }
+let fullMonthOn = false;
 
+document.getElementById("fullMonthBtn").onclick = () => {
+  fullMonthOn = !fullMonthOn;
+  const btn = document.getElementById("fullMonthBtn");
+
+  if (fullMonthOn) {
+    btn.textContent = "Full Month View OFF";
+    showFullMonthEvents();
+  } else {
+    btn.textContent = "Full Month View ON";
+    if (selectedDateStr) {
+      populatePanelForDate(selectedDateStr);
+    } else {
+      document.getElementById("panelList").innerHTML =
+        `<div class="no-events">No events selected. Tap a day.</div>`;
+      document.getElementById("panelDate").textContent = "Select a date";
+    }
+  }
+};
+  
 async function loadCsvAndParse(){
   try{
     const res = await fetch(CSV_URL);
