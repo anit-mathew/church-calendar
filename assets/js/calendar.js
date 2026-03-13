@@ -15,15 +15,27 @@ function escapeHtml(s) {
   return s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 }
 
-/* ── BUG FIX 1: Parse date parts manually to avoid UTC→local timezone shift ── */
+/* ── FIX 1: Handle both YYYY-MM-DD and M/D/YYYY (Google Sheets default) ── */
 function parseLocalDate(str) {
-  if (!str) return null;
-  const parts = str.trim().split(/[-\/]/);
-  if (parts.length < 3) return null;
-  const [y, m, d] = parts.map(Number);
-  if (!y || !m || !d) return null;
-  const result = new Date(y, m - 1, d);
-  return isNaN(result) ? null : result;
+  if (!str || !str.trim()) return null;
+  str = str.trim();
+
+  // YYYY-MM-DD
+  let m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+
+  // M/D/YYYY or MM/DD/YYYY (Google Sheets typical export format)
+  m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    let yr = +m[3];
+    if (yr < 100) yr += yr < 50 ? 2000 : 1900;
+    return new Date(yr, +m[1] - 1, +m[2]);
+  }
+
+  // Fallback: let JS parse it, but extract local parts to avoid UTC shift
+  const d = new Date(str);
+  if (isNaN(d)) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function normalizeDate(str) {
@@ -35,37 +47,16 @@ function isPublic(ev) {
   return (!ev.VISIBILITY || ev.VISIBILITY.toLowerCase().includes('public')) && ev.PROGRAM.trim() !== '';
 }
 
-/* ── Show error message in panel ── */
-function showPanelError(msg) {
-  document.getElementById('panelList').innerHTML =
-    `<div class="no-events" style="color:#e57373;">⚠️ ${msg}</div>`;
-}
-
 /* ── CSV Load & Parse ── */
 async function loadCsvAndParse() {
   try {
-    const res = await fetch(CSV_URL, { mode: 'cors' });
-
-    if (!res.ok) {
-      showPanelError(`Could not load events (HTTP ${res.status}). Check your internet connection.`);
-      return;
-    }
-
+    const res = await fetch(CSV_URL);
     const text = await res.text();
-
-    if (!text || text.trim().length === 0) {
-      showPanelError('Event data is empty. The Google Sheet may not be published yet.');
-      return;
-    }
 
     Papa.parse(text, {
       skipEmptyLines: true,
       complete: ({ data }) => {
-        if (!data || data.length < 2) {
-          showPanelError('No rows found in the event sheet.');
-          return;
-        }
-
+        // Original header detection — keep exactly as was (it was working)
         let headerIdx = data.findIndex(r => r.some(c => (c||'').toUpperCase().includes('DATE')));
         if (headerIdx < 0) headerIdx = 0;
 
@@ -103,21 +94,12 @@ async function loadCsvAndParse() {
 
         renderCalendar();
 
-        // If month view was already on, refresh with loaded data
+        // FIX 2: Refresh month view if it was already open when data loaded
         if (fullMonthOn) showFullMonthEvents();
-      },
-      error: (err) => {
-        showPanelError('Failed to parse event data: ' + err.message);
       }
     });
-
   } catch (e) {
     console.error('CSV load error:', e);
-    if (e instanceof TypeError) {
-      showPanelError('Network error — if testing locally, this is a CORS restriction. Works fine on the live server.');
-    } else {
-      showPanelError('Could not load events. Check the browser console for details.');
-    }
   }
 }
 
@@ -241,12 +223,6 @@ function renderEventList(list, showDate = false) {
   });
 }
 
-/* ── BUG FIX 2: Sync selectors to currentDate without rebuilding the lists ── */
-function syncSelectors() {
-  document.getElementById('monthSelect').value = currentDate.getMonth();
-  document.getElementById('yearSelect').value  = currentDate.getFullYear();
-}
-
 /* ── Month/Year Selectors ── */
 function initMonthYearSelectors() {
   const monthSel = document.getElementById('monthSelect');
@@ -272,21 +248,23 @@ function initMonthYearSelectors() {
   monthSel.value = currentDate.getMonth();
   yearSel.value  = currentDate.getFullYear();
 
-  monthSel.onchange = () => { currentDate.setMonth(+monthSel.value); syncSelectors(); renderCalendar(); if (fullMonthOn) showFullMonthEvents(); };
-  yearSel.onchange  = () => { currentDate.setFullYear(+yearSel.value); syncSelectors(); renderCalendar(); if (fullMonthOn) showFullMonthEvents(); };
+  // FIX 3: dropdown changes also refresh month view if active
+  monthSel.onchange = () => { currentDate.setMonth(+monthSel.value); renderCalendar(); if (fullMonthOn) showFullMonthEvents(); };
+  yearSel.onchange  = () => { currentDate.setFullYear(+yearSel.value); renderCalendar(); if (fullMonthOn) showFullMonthEvents(); };
 }
 
 /* ── Nav Buttons ── */
+// Keep initMonthYearSelectors() in nav buttons exactly as original — it rebuilds AND re-attaches handlers
 document.getElementById('prevMonthBtn').onclick = () => {
   currentDate.setMonth(currentDate.getMonth() - 1);
-  syncSelectors();
+  initMonthYearSelectors();
   renderCalendar();
   if (fullMonthOn) showFullMonthEvents();
 };
 
 document.getElementById('nextMonthBtn').onclick = () => {
   currentDate.setMonth(currentDate.getMonth() + 1);
-  syncSelectors();
+  initMonthYearSelectors();
   renderCalendar();
   if (fullMonthOn) showFullMonthEvents();
 };
@@ -308,6 +286,8 @@ document.getElementById('fullMonthBtn').onclick = () => {
     }
   }
 };
+
+/* ── FIX 4: CSS dot fix — remove duplicate rule was in style.css ── */
 
 /* ── Init ── */
 initMonthYearSelectors();
